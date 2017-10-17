@@ -188,7 +188,6 @@ namespace TestUdpServer
             Socket s = (Socket)ar.AsyncState;
             s.EndReceive(ar);
             Packet receivedData = new Packet(this.dataStream);
-            Console.WriteLine("The newly connected server is: {0}", receivedData.ChatMessage);
             if (receivedData.ChatMessage != serverSocket.LocalEndPoint.ToString())
             {
                 serversList.Add(receivedData.ChatMessage);
@@ -292,11 +291,6 @@ namespace TestUdpServer
                     case DataIdentifier.Broadcast:
                         if (receivedData.ChatMessage == "ACK")
                         {
-                            Console.WriteLine("I received the ACK. Sender Name : {0}, Recipient Name: {1}: ", receivedData.SenderName, receivedData.RecipientName);
-                            foreach (DictionaryEntry d in clientBuffers)
-                            {
-                                Console.WriteLine("Key: {0}, Value: {1}", d.Key, d.Value);
-                            }
                             PartialCleanUpSendBuffer(receivedData);
                         }
                         else
@@ -341,7 +335,6 @@ namespace TestUdpServer
                             }
                             else if (clientBuffers.ContainsKey(receivedData.RecipientName) && receivedData.ChatDataIdentifier == DataIdentifier.Broadcast) 
                             {
-                                Console.WriteLine("Received this packet: {0}", receivedData.ChatMessage);
                                 if (clientBuffersForBroadcast.ContainsKey(receivedData.RecipientName))
                                 {
                                     lock (clientBufferBroadcastLock)
@@ -363,7 +356,6 @@ namespace TestUdpServer
                                     }
                                 }
                                 processBroadcastEvent.Set();
-                                Console.WriteLine("Sender: {0}, Recipient: {1}: ", receivedData.SenderName, receivedData.RecipientName);
                                 SendACKToServerForBroadcast(receivedData);
                             }
                         }
@@ -433,9 +425,6 @@ namespace TestUdpServer
             int seqNumACKed = pkt.SequenceNumber;
             SortedDictionary<int, Packet> sortedDict = null;
 
-            Console.WriteLine("In Partial Clean Up Send Buffer");
-            Console.WriteLine("SenderName: {0}, Recipient Name: {1}, Message: {2}", pkt.SenderName, pkt.RecipientName, pkt.ChatMessage);
-            Console.WriteLine("Client Buffers contains recipient name : {0}", clientBuffers.Contains(recipientName));
             if (clientBuffers.Contains(recipientName))
             {
                 lock (clientBufferLock)
@@ -501,6 +490,10 @@ namespace TestUdpServer
                         foreach (KeyValuePair<int, Packet> entry in tempDict)
                         {
                             Packet pkt = new Packet(entry.Value);
+                            //Console.WriteLine("In Process Send Buffer");
+                            //Console.WriteLine("Sender Name: {0}", pkt.SenderName);
+                            //Console.WriteLine("Recipient Name: {0}", pkt.RecipientName);
+                            //Console.WriteLine("Message: {0}", pkt.ChatMessage);
                             RelayMessage(pkt);
                         }
                     }
@@ -541,6 +534,10 @@ namespace TestUdpServer
                         foreach (KeyValuePair<int, Packet> entry in tempDict)
                         {
                             Packet pkt = new Packet(entry.Value);
+                            //Console.WriteLine("In Process Broadcast Buffer");
+                            //Console.WriteLine("Sender Name: {0}", pkt.SenderName);
+                            //Console.WriteLine("Recipient Name: {0}", pkt.RecipientName);
+                            //Console.WriteLine("Message: {0}", pkt.ChatMessage);
                             RelayMessage(pkt);
                         }
                     }
@@ -575,7 +572,6 @@ namespace TestUdpServer
                     string[] ipAddrArray = server.ToString().Split(delimiters);
                     EndPoint recipient = (EndPoint)new IPEndPoint(IPAddress.Parse(ipAddrArray[0]), int.Parse(ipAddrArray[1]));
 
-                    Console.WriteLine("Recipient: {0}", recipient.ToString());
                     if (recipient.ToString() != serverSocket.LocalEndPoint.ToString())
                     {
                         serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient, new AsyncCallback(BroadcastToServersCallback), serverSocket);

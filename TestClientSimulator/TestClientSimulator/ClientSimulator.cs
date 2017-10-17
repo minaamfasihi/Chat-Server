@@ -65,7 +65,7 @@ namespace TestClientSimulator
         private static string LBIPAddress;
         private static string serverIPAddress;
         private static string clientIPAddress;
-        private static string fileName = @"E:\Client-Simulator-Logs-";
+        private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\Client-Simulator-logs-";
 
         public static int GetRandomNumber(int min, int max)
         {

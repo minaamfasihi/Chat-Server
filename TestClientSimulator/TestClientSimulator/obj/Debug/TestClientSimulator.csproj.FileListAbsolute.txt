@@ -6,3 +6,12 @@ C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator
 C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\obj\Debug\TestClientSimulator.pdb
 C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\bin\Debug\LogWriterAPI.dll
 C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\bin\Debug\LogWriterAPI.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\bin\Debug\TestClientSimulator.exe.config
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\bin\Debug\TestClientSimulator.exe
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\bin\Debug\TestClientSimulator.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\bin\Debug\LogWriterAPI.dll
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\bin\Debug\LogWriterAPI.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\obj\Debug\TestClientSimulator.csprojResolveAssemblyReference.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\obj\Debug\TestClientSimulator.csproj.CoreCompileInputs.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\obj\Debug\TestClientSimulator.exe
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\obj\Debug\TestClientSimulator.pdb

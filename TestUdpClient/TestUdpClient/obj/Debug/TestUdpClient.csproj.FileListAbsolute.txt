@@ -14,3 +14,12 @@ C:\Users\minaam.fasihi\Documents\Projects\TestUdpClient\TestUdpClient\bin\Debug\
 C:\Users\minaam.fasihi\Documents\Projects\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.csprojResolveAssemblyReference.cache
 C:\Users\minaam.fasihi\Documents\Projects\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.exe
 C:\Users\minaam.fasihi\Documents\Projects\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\bin\Debug\TestUdpClient.exe.config
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\bin\Debug\TestUdpClient.exe
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\bin\Debug\TestUdpClient.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\bin\Debug\LogWriterAPI.dll
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\bin\Debug\LogWriterAPI.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.csprojResolveAssemblyReference.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.csproj.CoreCompileInputs.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.exe
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.pdb
