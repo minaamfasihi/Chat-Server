@@ -1,0 +1,276 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Net;
+using System.Net.Sockets;
+using TestUdpClientSimulator;
+
+namespace TestClientSimulator
+{
+    class ClientSimulator
+    {
+        private Socket clientSocket;
+
+        // Client name
+        private string name;
+
+        // Server End Point
+        private EndPoint epServer;
+
+        // Data stream
+        private byte[] dataStream = new byte[1024];
+
+        private static int possiblePortNums = 10000;
+
+        private static int LBPort = 9002;
+
+        public ClientSimulator()
+        {
+        }
+
+        private string friendName;
+
+        private static AutoResetEvent autoEvent = new AutoResetEvent(false);
+
+        //Function to get random number
+        private static readonly Random getrandom = new Random();
+        private static readonly object syncLock = new object();
+        public static int GetRandomNumber(int min, int max)
+        {
+            lock (syncLock)
+            { // synchronize
+                return getrandom.Next(min, max);
+            }
+        }
+
+        private void ConnectToLoadBalancer()
+        {
+            allDone.Reset();
+            IPAddress ipAddr = IPAddress.Parse("127.0.0.1");
+            IPEndPoint remoteEndPoint = new IPEndPoint(ipAddr, LBport);
+
+            LBClientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            LBClientSocket.BeginConnect(remoteEndPoint, new AsyncCallback(LBConnectCallback), LBClientSocket);
+            allDone.WaitOne();
+        }
+
+        private void LBConnectCallback(IAsyncResult ar)
+        {
+            Socket client = (Socket)ar.AsyncState;
+            client.EndConnect(ar);
+            LBRequestForServer();
+        }
+
+        private void LBRequestForServer()
+        {
+            string friendName = "fasihi";
+            Packet sendData = new Packet(friendName);
+            sendData.SenderName = "minaam";
+            sendData.ChatMessage = "request";
+            byte[] byteData = sendData.GetDataStream();
+
+            LBClientSocket.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(LBRequestForServerCallback), LBClientSocket);
+            //allDone.WaitOne();
+        }
+
+        private void LBRequestForServerCallback(IAsyncResult ar)
+        {
+            Socket client = (Socket)ar.AsyncState;
+            client.EndSend(ar);
+            client.BeginReceive(this.dataStream, 0, this.dataStream.Length, 0, new AsyncCallback(LBReceiveCallback), client);
+        }
+
+        private void LBReceiveCallback(IAsyncResult ar)
+        {
+            Socket client = (Socket)ar.AsyncState;
+            client.EndReceive(ar);
+            Packet receivedData = new Packet(this.dataStream);
+            Console.WriteLine("My server should be: {0}", receivedData.ChatMessage);
+            char[] delimiters = { ':' };
+            string[] serverAddress = receivedData.ChatMessage.Split(delimiters);
+            IPAddress serverIP = IPAddress.Parse(serverAddress[0]);
+            IPEndPoint server = new IPEndPoint(serverIP, int.Parse(serverAddress[1]));
+            epServer = (EndPoint)server;
+            Console.WriteLine("This is the address of server received from LB: {0} : {1}", server.Address, server.Port);
+            //this.ConnectToServer(server);
+            allDone.Set();
+        }
+
+        private void Connect()
+        {
+            try
+            {
+                autoEvent.WaitOne();
+                this.name = possiblePortNums.ToString();
+                possiblePortNums++;
+                autoEvent.Set();
+
+                this.clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                this.clientSocket.Bind((EndPoint)(new IPEndPoint(IPAddress.Parse("127.0.0.1"), int.Parse(this.name))));
+
+                friendName = GetRandomNumber(startPortNumber, endPortNumber).ToString();
+                Packet sendData = new Packet(friendName);
+                sendData.SenderName = this.name;
+                sendData.ChatMessage = null;
+                sendData.ChatDataIdentifier = DataIdentifier.LogIn;
+
+                // Initialise server IP
+                IPAddress serverIP = IPAddress.Parse("127.0.0.1");
+
+                // Initialise the IPEndPoint for the server and use port 30000
+                IPEndPoint server = new IPEndPoint(serverIP, 9999);
+
+                // Initialise the EndPoint for the server
+                epServer = (EndPoint)server;
+
+                // Get packet as byte array
+                byte[] data = sendData.GetDataStream();
+
+                // Send data to server
+                clientSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(this.SendData), null);
+
+                // Begin listening for broadcasts
+                clientSocket.BeginReceiveFrom(this.dataStream, 0, this.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(this.ReceiveData), null);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        private void SendMessage()
+        {
+            while (true)
+            {
+                try
+                {
+                    Packet sendData = new Packet(friendName);
+                    sendData.SenderName = this.name;
+                    //Console.WriteLine("Please enter your message");
+                    sendData.ChatMessage = "I am a random message, that's the onliest thing I can do.";
+
+                    if (sendData.ChatMessage.ToLower() == "quit")
+                    {
+                        Logout(sendData);
+                        return;
+                    }
+
+                    sendData.ChatDataIdentifier = DataIdentifier.Message;
+                    // Get packet as byte array
+                    byte[] byteData = sendData.GetDataStream();
+
+                    // Send packet to the server
+                    clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer, new AsyncCallback(this.SendData), null);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+        }
+
+        private void Logout(Packet sendData)
+        {
+            try
+            {
+                if (this.clientSocket != null)
+                {
+                    // Initialise a packet object to store the data to be sent
+                    sendData.ChatDataIdentifier = DataIdentifier.LogOut;
+                    sendData.SenderName = this.name;
+                    sendData.ChatMessage = null;
+
+                    // Get packet as byte array
+                    byte[] byteData = sendData.GetDataStream();
+
+                    // Send packet to the server
+                    this.clientSocket.SendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer);
+
+                    // Close the socket
+                    this.clientSocket.Close();
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        private void SendData(IAsyncResult ar)
+        {
+            try
+            {
+                clientSocket.EndSendTo(ar);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        private void ReceiveData(IAsyncResult ar)
+        {
+            try
+            {
+                // Receive all data
+                this.clientSocket.EndReceive(ar);
+
+                // Initialise a packet object to store the received data
+                Packet receivedData = new Packet(this.dataStream);
+
+                //Console.WriteLine(receivedData.ChatMessage);
+
+                // Reset data stream
+                this.dataStream = new byte[1024];
+
+                // Continue listening for broadcasts
+                clientSocket.BeginReceiveFrom(this.dataStream, 0, this.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(this.ReceiveData), null);
+            }
+            catch (ObjectDisposedException)
+            { }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        public static void SimulateClients()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                ClientSimulator client = new ClientSimulator();
+                client.Connect();
+                client.SendMessage();
+            }
+        }
+
+        public static int startPortNumber;
+        public static int endPortNumber;
+
+
+        static void Main(string[] args)
+        {
+            //startPortNumber = int.Parse(args[0]);
+            //endPortNumber = int.Parse(args[1]);
+            startPortNumber = 10000;
+            endPortNumber = 14000;
+            var threads = new Thread[4];
+            autoEvent.Set();
+            Console.WriteLine("Starting port number: {0}", possiblePortNums);
+            for (int j = 0; j < threads.Length; j++)
+            {
+                threads[j] = new Thread(SimulateClients);
+                threads[j].Start();
+            }
+            // End the threads gracefully
+            foreach (Thread thread in threads)
+            {
+                thread.Join();
+            }
+            Console.WriteLine("Ending port number: {0}", possiblePortNums);
+        }
+    }
+}

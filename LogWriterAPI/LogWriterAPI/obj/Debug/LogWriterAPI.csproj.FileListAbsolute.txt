@@ -1,0 +1,10 @@
+c:\users\minaam.fasihi\documents\visual studio 2017\Projects\LogWriterAPI\LogWriterAPI\bin\Debug\LogWriterAPI.dll
+c:\users\minaam.fasihi\documents\visual studio 2017\Projects\LogWriterAPI\LogWriterAPI\bin\Debug\LogWriterAPI.pdb
+c:\users\minaam.fasihi\documents\visual studio 2017\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.csprojResolveAssemblyReference.cache
+c:\users\minaam.fasihi\documents\visual studio 2017\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.dll
+c:\users\minaam.fasihi\documents\visual studio 2017\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.pdb
+C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\bin\Debug\LogWriterAPI.dll
+C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\bin\Debug\LogWriterAPI.pdb
+C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.csprojResolveAssemblyReference.cache
+C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.dll
+C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.pdb

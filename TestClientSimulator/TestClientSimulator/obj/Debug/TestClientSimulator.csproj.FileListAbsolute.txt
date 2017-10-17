@@ -1,0 +1,8 @@
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\obj\Debug\TestClientSimulator.csprojResolveAssemblyReference.cache
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\bin\Debug\TestClientSimulator.exe.config
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\bin\Debug\TestClientSimulator.exe
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\bin\Debug\TestClientSimulator.pdb
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\obj\Debug\TestClientSimulator.exe
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\obj\Debug\TestClientSimulator.pdb
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\bin\Debug\LogWriterAPI.dll
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\TestClientSimulator\TestClientSimulator\bin\Debug\LogWriterAPI.pdb
