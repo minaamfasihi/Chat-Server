@@ -313,7 +313,8 @@ namespace TestClientSimulator
                     Packet sendData = new Packet(friend);
                     string clientName = client.LocalEndPoint.ToString();
                     sendData.SenderName = clientName;
-                    sendData.ChatMessage = "Testing";
+                    sendData.ChatMessage = @"TestingTestingTestingTestingTestingTestingTestingTestingTestingTesting\" +
+                        "TestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTesting";
                     sendData.SequenceNumber = nextSequenceNumber(clientName);
                     sendData.ChatDataIdentifier = DataIdentifier.Message;
 
@@ -464,7 +465,7 @@ namespace TestClientSimulator
                                 }
                             }
                         }
-                        Thread.Sleep(1);
+                        //Thread.Sleep(1);
                     }
 
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
@@ -483,7 +484,7 @@ namespace TestClientSimulator
         public static void ReceiveData(IAsyncResult ar)
         {
             string logMsg = DateTime.Now + "\t In ReceiveData()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
 
             try
             {

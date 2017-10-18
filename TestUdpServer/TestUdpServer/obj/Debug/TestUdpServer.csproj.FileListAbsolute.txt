@@ -25,8 +25,6 @@ C:\Users\minaam.fasihi\Documents\Projects\ChatServer\TestUdpServer\TestUdpServer
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\bin\Debug\TestUdpServer.exe.config
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\bin\Debug\TestUdpServer.exe
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\bin\Debug\TestUdpServer.pdb
-C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\bin\Debug\LogWriterAPI.dll
-C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\bin\Debug\LogWriterAPI.pdb
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\obj\Debug\TestUdpServer.csprojResolveAssemblyReference.cache
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\obj\Debug\TestUdpServer.exe
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\obj\Debug\TestUdpServer.pdb

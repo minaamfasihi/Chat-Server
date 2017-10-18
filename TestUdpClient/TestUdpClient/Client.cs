@@ -403,7 +403,6 @@ namespace TestUdpClient
                         receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
                         SendACKToServer();
                         processReceiveQueue.Set();
-                        retransmitSendWorker.Set();
                     }
 
                     if (currentReceiveWindowHasSpace() && liesInRangeForReceive(receivedData.SequenceNumber))
@@ -413,7 +412,6 @@ namespace TestUdpClient
                             receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
                             SendACKToServer();
                             processReceiveQueue.Set();
-                            retransmitSendWorker.Set();
                         }
                     }
                 }
@@ -499,16 +497,6 @@ namespace TestUdpClient
                     }
 
                     oldestSendPacketSeqNum = latestSendPktACKED - 1;
-                    if (sendMessageBuffer.Any())
-                    {
-                        //retransmitSendWorker.Set();
-                        //sendTimer.Enabled = true;
-                    }
-                    else
-                    {
-                        //retransmitSendWorker.Reset();
-                        //sendTimer.Enabled = false;
-                    }
                 }
             }
         }
@@ -656,10 +644,8 @@ namespace TestUdpClient
         
         private void OnSendTimedEvent(object course, ElapsedEventArgs e)
         {
-            //retransmitSendWorker.WaitOne();
             processSendQueue.Set();
             ProcessSendQueue();
-            //startSendTimer.Set();
         }
 
         private bool currentReceiveWindowHasSpace()

@@ -56,6 +56,8 @@ namespace TestUdpServer
         private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\Server-logs-";
         private static string serverIPAddress;
         private static string LBIPAddress;
+        private static int rawNumOfPktsReceived = 0;
+        private static int prevRawNumOfPktsReceived = 0;
         #endregion
 
         #region Constructor
@@ -246,6 +248,8 @@ namespace TestUdpServer
         {
             int pktsProcessed = (numOfPktsSent - prevNumOfPktsSent);
             Console.WriteLine("Packets processed: {0}", pktsProcessed);
+            Console.WriteLine("Raw number of packets received: {0}", rawNumOfPktsReceived - prevRawNumOfPktsReceived);
+            prevRawNumOfPktsReceived = rawNumOfPktsReceived;
             prevNumOfPktsSent = numOfPktsSent;
         }
 
@@ -284,7 +288,7 @@ namespace TestUdpServer
                 sendData.ChatDataIdentifier = receivedData.ChatDataIdentifier;
                 sendData.SenderName = receivedData.SenderName;
                 sendData.RecipientName = receivedData.RecipientName;
-
+                rawNumOfPktsReceived++;
                 switch (receivedData.ChatDataIdentifier)
                 {
                     case DataIdentifier.Message:
@@ -333,7 +337,7 @@ namespace TestUdpServer
                                     processSendEvent.Set();
                                 }
                             }
-                            else if (clientBuffers.ContainsKey(receivedData.RecipientName) && receivedData.ChatDataIdentifier == DataIdentifier.Broadcast) 
+                            else if (clientBuffers.ContainsKey(receivedData.RecipientName) && receivedData.ChatDataIdentifier == DataIdentifier.Broadcast)
                             {
                                 if (clientBuffersForBroadcast.ContainsKey(receivedData.RecipientName))
                                 {
@@ -627,14 +631,16 @@ namespace TestUdpServer
                 if (clientsList.ContainsKey(sendData.RecipientName))
                 {
                     SendMessageToClient(sendData);
+                    numOfPktsSent++;
                 }
                 else if (sendData.ChatDataIdentifier != DataIdentifier.Broadcast)
                 {
                     sendData.ChatDataIdentifier = DataIdentifier.Broadcast;
                     BroadcastToAllServers(sendData);
+                    numOfPktsSent++;
                 }
             }
-            numOfPktsSent++;
+            
             logMsg = DateTime.Now + ":\t Exiting RelayMessage()";
             logger.Log(logMsg);
         }
