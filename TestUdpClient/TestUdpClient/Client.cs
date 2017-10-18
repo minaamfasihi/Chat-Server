@@ -40,6 +40,7 @@ namespace TestUdpClient
         private static int latestReceivePacketSeqNum = 0;
 
         private static Queue<Packet> sendMessageBuffer = new Queue<Packet>();
+        private static SortedDictionary<int, Packet> receiveMessageBuffer = new SortedDictionary<int, Packet>();
 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
 
@@ -48,11 +49,7 @@ namespace TestUdpClient
         private static AutoResetEvent cleanerSendQueue = new AutoResetEvent(false);
         private static AutoResetEvent cleanerReceiveQueue = new AutoResetEvent(false);
         private static AutoResetEvent partialCleanerSendQueue = new AutoResetEvent(false);
-        private static AutoResetEvent retransmitSendWorker = new AutoResetEvent(false);
-        private static AutoResetEvent startSendTimer = new AutoResetEvent(false);
 
-        private static SortedDictionary <int, Packet> receiveMessageBuffer = new SortedDictionary<int, Packet>();
-        
         private static LogWriter logger = Logger.Instance;
 
         private static System.Timers.Timer sendTimer;
@@ -583,35 +580,20 @@ namespace TestUdpClient
             }
         }
 
-        private void SendTimer()
+        private static void CheckSendBuffer(object o, ElapsedEventArgs e)
         {
-            while (true)
+            if (sendMessageBuffer.Count != 0)
             {
-                //startSendTimer.WaitOne();
-                sendTimer = new System.Timers.Timer();
-                sendTimer.Elapsed += new ElapsedEventHandler(OnSendTimedEvent);
-                sendTimer.Interval = 4000;
-                sendTimer.Enabled = true;
-                sendTimer.Start();
+                processSendQueue.Set();
             }
         }
 
-        private void StartReceiveTimer()
+        private void ResendMechanism()
         {
-            receiveTimer = new System.Timers.Timer();
-            receiveTimer.Elapsed += new ElapsedEventHandler(OnSendTimedEvent);
-            receiveTimer.Interval = 100;
-            receiveTimer.Enabled = true;
-        }
-
-        private void StopSendTimer()
-        {
-            sendTimer.Stop();
-        }
-
-        private void StopReceiveTimer()
-        {
-            receiveTimer.Stop();
+            sendTimer = new System.Timers.Timer(500);
+            sendTimer.Elapsed += CheckSendBuffer;
+            sendTimer.AutoReset = true;
+            sendTimer.Enabled = true;
         }
 
         private int getCurrentSendWindowSize()
@@ -642,12 +624,6 @@ namespace TestUdpClient
             }
         }
         
-        private void OnSendTimedEvent(object course, ElapsedEventArgs e)
-        {
-            processSendQueue.Set();
-            ProcessSendQueue();
-        }
-
         private bool currentReceiveWindowHasSpace()
         {
             return (latestReceivePktACKED - oldestReceivePacketSeqNum) < windowSize;
@@ -656,11 +632,6 @@ namespace TestUdpClient
         private bool liesInRangeForReceive(int seqNum)
         {
             return (oldestReceivePacketSeqNum < seqNum && (oldestReceivePacketSeqNum + windowSize) >= seqNum);
-        }
-
-        private void OnReceiveTimedEvent(object course, ElapsedEventArgs e)
-        {
-            processReceiveQueue.Set();
         }
 
         static void Main(string[] args)
@@ -681,16 +652,15 @@ namespace TestUdpClient
                 t2.Start();
                 Thread t3 = new Thread(client.ProcessReceiveQueue);
                 t3.Start();
+                Thread t4 = new Thread(client.ResendMechanism);
+                t4.Start();
                 Thread t5 = new Thread(client.PartialCleanUpSendQueue);
                 t5.Start();
-                startSendTimer.Set();
-                //Thread t4 = new Thread(client.SendTimer);
-                //t4.Start();
                 client.SendMessage();
                 t1.Join();
                 t2.Join();
                 t3.Join();
-                //t4.Join();
+                t4.Join();
                 t5.Join();
             }
 

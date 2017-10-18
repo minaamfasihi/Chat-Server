@@ -289,6 +289,7 @@ namespace TestUdpServer
                 sendData.SenderName = receivedData.SenderName;
                 sendData.RecipientName = receivedData.RecipientName;
                 rawNumOfPktsReceived++;
+
                 switch (receivedData.ChatDataIdentifier)
                 {
                     case DataIdentifier.Message:
