@@ -28,7 +28,7 @@ namespace LogWriterAPI
             }
             catch (Exception e)
             {
-                Console.WriteLine("Cannot write logs, exiting with error: {0}", e.ToString());
+                //Console.WriteLine("Cannot write logs, exiting with error: {0}", e.ToString());
             }
         }
 
@@ -61,7 +61,7 @@ namespace LogWriterAPI
 
                 catch (Exception e)
                 {
-                    Console.WriteLine("Cannot write logs, exiting with error: {0}", e.ToString());
+                    //Console.WriteLine("Cannot write logs, exiting with error: {0}", e.ToString());
                 }
             }
         }

@@ -476,7 +476,7 @@ namespace TestClientSimulator
                     logger.Log(logMsg);;
                 }
 
-                //Thread.Sleep(1);
+                //Thread.Sleep(10);
             }
         }
 
@@ -748,22 +748,17 @@ namespace TestClientSimulator
             }
         }
 
-        private void MessagesProduced(/*object course, ElapsedEventArgs e*/)
+        private static void MessagesProduced(object course, ElapsedEventArgs e)
         {
-            while (true)
-            {
-                Thread.Sleep(1000);
-
-                int pktsProduced = (numOfPktsProduced - prevNumOfPktsProduced);
-                Console.WriteLine("Packets processed: {0}", pktsProduced);
-                prevNumOfPktsProduced = numOfPktsProduced;
-            }
+            int pktsProduced = (numOfPktsProduced - prevNumOfPktsProduced);
+            Console.WriteLine("Packets processed: {0}", pktsProduced);
+            prevNumOfPktsProduced = numOfPktsProduced;
         }
 
         private void MessageProductionRate()
         {
-            aTimer = new System.Timers.Timer(500);
-            //aTimer.Elapsed += MessagesProduced;
+            aTimer = new System.Timers.Timer(1000);
+            aTimer.Elapsed += MessagesProduced;
             aTimer.AutoReset = true;
             aTimer.Enabled = true;
         }
@@ -795,7 +790,7 @@ namespace TestClientSimulator
             Thread t4 = new Thread(CleanUpReceiveQueue);
             t4.Start();
 
-            Thread t5 = new Thread(simulator.MessagesProduced);
+            Thread t5 = new Thread(simulator.MessageProductionRate);
             t5.Start();
 
             Initialize();

@@ -8,3 +8,9 @@ C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\bin\Debug\Lo
 C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.csprojResolveAssemblyReference.cache
 C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.dll
 C:\Users\minaam.fasihi\Documents\Projects\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\LogWriterAPI\LogWriterAPI\bin\Debug\LogWriterAPI.dll
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\LogWriterAPI\LogWriterAPI\bin\Debug\LogWriterAPI.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.csprojResolveAssemblyReference.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.csproj.CoreCompileInputs.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.dll
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\LogWriterAPI\LogWriterAPI\obj\Debug\LogWriterAPI.pdb

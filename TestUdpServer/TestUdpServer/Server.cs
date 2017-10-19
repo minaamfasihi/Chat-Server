@@ -646,42 +646,43 @@ namespace TestUdpServer
                 //Thread.Sleep(1);
                 //sendACKEvent.WaitOne();
 
-                string logMsg = DateTime.Now + ":\t In SendACKToClient()";
-                logger.Log(logMsg);
-                Packet sendData = new Packet();
-                SortedDictionary<int, Packet> sortedDict;
-                foreach (DictionaryEntry dict in clientBuffers)
+            string logMsg = DateTime.Now + ":\t In SendACKToClient()";
+            logger.Log(logMsg);
+            Packet sendData = new Packet();
+            SortedDictionary<int, Packet> sortedDict;
+            //foreach (DictionaryEntry dict in clientBuffers)
+            //{
+            lock (clientBufferLock)
+            {
+                //sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)dict.Value);
+                sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)clientBuffers[clientName]);
+            }
+
+            if (sortedDict.Count != 0)
+            {
+                int lastValidSeqNum = sortedDict.Keys.First();
+                sendData.ChatMessage = "ACK";
+                sendData.RecipientName = clientName;
+                sendData.SenderName = "Server";
+
+                for (int i = sortedDict.Keys.First(); i <= sortedDict.Keys.Last(); i++)
                 {
-                    lock (clientBufferLock)
+                    if (sortedDict.ContainsKey(i) && i == lastValidSeqNum)
                     {
-                        sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)dict.Value);
+                        lastValidSeqNum++;
                     }
-
-                    if (sortedDict.Count != 0)
-                    {
-                        int lastValidSeqNum = sortedDict.Keys.First();
-                        sendData.ChatMessage = "ACK";
-                        sendData.RecipientName = dict.Key.ToString();
-                        sendData.SenderName = "Server";
-
-                        for (int i = sortedDict.Keys.First(); i <= sortedDict.Keys.Last(); i++)
-                        {
-                            if (sortedDict.ContainsKey(i) && i == lastValidSeqNum)
-                            {
-                                lastValidSeqNum++;
-                            }
-                            else break;
-                        }
-
-                        sendData.SequenceNumber = lastValidSeqNum;
-                        byte[] data = sendData.GetDataStream();
-                        Client recipient = (Client)clientsList[sendData.RecipientName];
-                        serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.endPoint, new AsyncCallback(SendData), recipient.endPoint);
-                    }
-
-                    logMsg = DateTime.Now + ":\t Exiting SendACKToClient()";
-                    logger.Log(logMsg);
+                    else break;
                 }
+
+                sendData.SequenceNumber = lastValidSeqNum;
+                byte[] data = sendData.GetDataStream();
+                Client recipient = (Client)clientsList[sendData.RecipientName];
+                serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.endPoint, new AsyncCallback(SendData), recipient.endPoint);
+            }
+
+            logMsg = DateTime.Now + ":\t Exiting SendACKToClient()";
+            logger.Log(logMsg);
+            //}
             //}
         }
 
