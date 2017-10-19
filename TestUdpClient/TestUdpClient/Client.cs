@@ -38,6 +38,8 @@ namespace TestUdpClient
         private static int latestSendPacketSeqNum = 0;
         private static int oldestReceivePacketSeqNum = 0;
         private static int latestReceivePacketSeqNum = 0;
+        private static int numOfPktsProduced = 0;
+        private static int prevNumOfPktsProduced = 0;
 
         private static Queue<Packet> sendMessageBuffer = new Queue<Packet>();
         private static SortedDictionary<int, Packet> receiveMessageBuffer = new SortedDictionary<int, Packet>();
@@ -54,6 +56,7 @@ namespace TestUdpClient
 
         private static System.Timers.Timer sendTimer;
         private static System.Timers.Timer receiveTimer;
+        private static System.Timers.Timer aTimer;
 
         private static object syncSendBuffer = new object();
         private static object syncReceiveBuffer = new object();
@@ -590,7 +593,7 @@ namespace TestUdpClient
 
         private void ResendMechanism()
         {
-            sendTimer = new System.Timers.Timer(500);
+            sendTimer = new System.Timers.Timer(1000);
             sendTimer.Elapsed += CheckSendBuffer;
             sendTimer.AutoReset = true;
             sendTimer.Enabled = true;
@@ -634,6 +637,21 @@ namespace TestUdpClient
             return (oldestReceivePacketSeqNum < seqNum && (oldestReceivePacketSeqNum + windowSize) >= seqNum);
         }
 
+        private static void OnTimedEvent(object course, ElapsedEventArgs e)
+        {
+            int pktsProduced = (numOfPktsProduced - prevNumOfPktsProduced);
+            Console.WriteLine("Packets processed: {0}", pktsProduced);
+            prevNumOfPktsProduced = numOfPktsProduced;
+        }
+
+        private void MessageProductionRate()
+        {
+            aTimer = new System.Timers.Timer(1000);
+            aTimer.Elapsed += OnTimedEvent;
+            aTimer.AutoReset = true;
+            aTimer.Enabled = true;
+        }
+
         static void Main(string[] args)
         {
             try
@@ -656,12 +674,15 @@ namespace TestUdpClient
                 t4.Start();
                 Thread t5 = new Thread(client.PartialCleanUpSendQueue);
                 t5.Start();
+                Thread t6 = new Thread(client.MessageProductionRate);
+                t6.Start();
                 client.SendMessage();
                 t1.Join();
                 t2.Join();
                 t3.Join();
                 t4.Join();
                 t5.Join();
+                t6.Join();
             }
 
             catch (Exception e)

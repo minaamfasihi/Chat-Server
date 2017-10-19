@@ -50,7 +50,7 @@ namespace TestUdpServer
         private const int LBport = 9000;
         private static AutoResetEvent processSendEvent = new AutoResetEvent(false);
         private static AutoResetEvent processBroadcastEvent = new AutoResetEvent(false);
-        private static AutoResetEvent msgsEvent = new AutoResetEvent(false);
+        private static AutoResetEvent sendACKEvent = new AutoResetEvent(false);
         private static LogWriter logger = Logger.Instance;
         private static int serverPort;
         private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\Server-logs-";
@@ -248,7 +248,7 @@ namespace TestUdpServer
         {
             int pktsProcessed = (numOfPktsSent - prevNumOfPktsSent);
             Console.WriteLine("Packets processed: {0}", pktsProcessed);
-            Console.WriteLine("Raw number of packets received: {0}", rawNumOfPktsReceived - prevRawNumOfPktsReceived);
+            //Console.WriteLine("Raw number of packets received: {0}", rawNumOfPktsReceived - prevRawNumOfPktsReceived);
             prevRawNumOfPktsReceived = rawNumOfPktsReceived;
             prevNumOfPktsSent = numOfPktsSent;
         }
@@ -363,6 +363,7 @@ namespace TestUdpServer
                                 processBroadcastEvent.Set();
                                 SendACKToServerForBroadcast(receivedData);
                             }
+                            sendACKEvent.Set();
                         }
                         break;
 
@@ -495,10 +496,6 @@ namespace TestUdpServer
                         foreach (KeyValuePair<int, Packet> entry in tempDict)
                         {
                             Packet pkt = new Packet(entry.Value);
-                            //Console.WriteLine("In Process Send Buffer");
-                            //Console.WriteLine("Sender Name: {0}", pkt.SenderName);
-                            //Console.WriteLine("Recipient Name: {0}", pkt.RecipientName);
-                            //Console.WriteLine("Message: {0}", pkt.ChatMessage);
                             RelayMessage(pkt);
                         }
                     }
@@ -539,10 +536,6 @@ namespace TestUdpServer
                         foreach (KeyValuePair<int, Packet> entry in tempDict)
                         {
                             Packet pkt = new Packet(entry.Value);
-                            //Console.WriteLine("In Process Broadcast Buffer");
-                            //Console.WriteLine("Sender Name: {0}", pkt.SenderName);
-                            //Console.WriteLine("Recipient Name: {0}", pkt.RecipientName);
-                            //Console.WriteLine("Message: {0}", pkt.ChatMessage);
                             RelayMessage(pkt);
                         }
                     }
@@ -648,39 +641,48 @@ namespace TestUdpServer
 
         private void SendACKToClient(string clientName)
         {
-            string logMsg = DateTime.Now + ":\t In SendACKToClient()";
-            logger.Log(logMsg);
-            Packet sendData = new Packet();
-            SortedDictionary<int, Packet> sortedDict;
-            lock (clientBufferLock)
-            {
-                sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)clientBuffers[clientName]);
-            }
+            //while (true)
+            //{
+                //Thread.Sleep(1);
+                //sendACKEvent.WaitOne();
 
-            if (sortedDict.Count != 0)
-            {
-                int lastValidSeqNum = sortedDict.Keys.First();
-                sendData.ChatMessage = "ACK";
-                sendData.RecipientName = clientName;
-                sendData.SenderName = "Server";
-
-                for (int i = sortedDict.Keys.First(); i <= sortedDict.Keys.Last(); i++)
+                string logMsg = DateTime.Now + ":\t In SendACKToClient()";
+                logger.Log(logMsg);
+                Packet sendData = new Packet();
+                SortedDictionary<int, Packet> sortedDict;
+                foreach (DictionaryEntry dict in clientBuffers)
                 {
-                    if (sortedDict.ContainsKey(i) && i == lastValidSeqNum)
+                    lock (clientBufferLock)
                     {
-                        lastValidSeqNum++;
+                        sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)dict.Value);
                     }
-                    else break;
+
+                    if (sortedDict.Count != 0)
+                    {
+                        int lastValidSeqNum = sortedDict.Keys.First();
+                        sendData.ChatMessage = "ACK";
+                        sendData.RecipientName = dict.Key.ToString();
+                        sendData.SenderName = "Server";
+
+                        for (int i = sortedDict.Keys.First(); i <= sortedDict.Keys.Last(); i++)
+                        {
+                            if (sortedDict.ContainsKey(i) && i == lastValidSeqNum)
+                            {
+                                lastValidSeqNum++;
+                            }
+                            else break;
+                        }
+
+                        sendData.SequenceNumber = lastValidSeqNum;
+                        byte[] data = sendData.GetDataStream();
+                        Client recipient = (Client)clientsList[sendData.RecipientName];
+                        serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.endPoint, new AsyncCallback(SendData), recipient.endPoint);
+                    }
+
+                    logMsg = DateTime.Now + ":\t Exiting SendACKToClient()";
+                    logger.Log(logMsg);
                 }
-
-                sendData.SequenceNumber = lastValidSeqNum;
-                byte[] data = sendData.GetDataStream();
-                Client recipient = (Client)clientsList[sendData.RecipientName];
-                serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.endPoint, new AsyncCallback(SendData), recipient.endPoint);
-            }
-
-            logMsg = DateTime.Now + ":\t Exiting SendACKToClient()";
-            logger.Log(logMsg);
+            //}
         }
 
         private void SendACKToServerForBroadcast(Packet pkt)
@@ -732,14 +734,17 @@ namespace TestUdpServer
             Thread t2 = new Thread(() => server.ProcessSendBuffer());
             t2.Start();
             Thread t3 = new Thread(server.messagesRate);
-            t3.Start();
+            //t3.Start();
             Thread t4 = new Thread(server.ProcessBroadcastBuffer);
             t4.Start();
+            //Thread t5 = new Thread(server.SendACKToClient);
+            //t5.Start();
             server.StartListening();
             t1.Join();
             t2.Join();
-            t3.Join();
+            //t3.Join();
             t4.Join();
+            //t5.Join();
         }
     }
 }

@@ -43,6 +43,10 @@ namespace TestClientSimulator
         private static int numOfPktsSent = 0;
         private static int numOfPktsReceived = 0;
         private static int windowSize = 4;
+        private static int numOfPktsProduced = 0;
+        private static int prevNumOfPktsProduced = 0;
+
+        private static System.Timers.Timer aTimer;
 
         private static Hashtable sendMessageBuffer = new Hashtable();
         private static Hashtable generateSequenceNumbers = new Hashtable();
@@ -307,7 +311,7 @@ namespace TestClientSimulator
                 {
                     return;
                 }
-
+                numOfPktsProduced++;
                 if (friend != "")
                 {
                     Packet sendData = new Packet(friend);
@@ -322,13 +326,8 @@ namespace TestClientSimulator
                     {
                         return;
                     }
-
                     if (sendMessageBuffer.Contains(sendData.SenderName))
                     {
-                        //Console.WriteLine("Sender: {0}", sendData.SenderName);
-                        //Console.WriteLine("Receiver: {0}", sendData.RecipientName);
-                        //Console.WriteLine("Sequence Number: {0}", sendData.SequenceNumber);
-                        //Console.WriteLine("Message: {0}", sendData.ChatMessage);
                         Queue<Packet> q = (Queue<Packet>)sendMessageBuffer[sendData.SenderName];
                         //if (q.Count < windowSize && liesInRangeForSend(q)) 
                         {
@@ -477,7 +476,7 @@ namespace TestClientSimulator
                     logger.Log(logMsg);;
                 }
 
-                Thread.Sleep(1);
+                //Thread.Sleep(1);
             }
         }
 
@@ -506,9 +505,6 @@ namespace TestClientSimulator
                     {
                         sentACKEDSequenceNumbers.Add(receivedData.RecipientName, receivedData.SequenceNumber);
                     }
-                    //Console.WriteLine("Sender: {0}", receivedData.SenderName);
-                    //Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
-                    //Console.WriteLine("ACK: {0}", receivedData.SequenceNumber);
                     cleanSendQueue.Set();
                 }
 
@@ -534,9 +530,6 @@ namespace TestClientSimulator
                                 receiveMessageBuffer.Add(receivedData.SenderName, temp);
                             }
                         }
-                        //Console.WriteLine("Sender: {0}", receivedData.SenderName);
-                        //Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
-                        //Console.WriteLine("Message: {0}", receivedData.ChatMessage);
                         SendACKToServer(receivedData.SenderName, receivedData.RecipientName);
                     }
                 }
@@ -727,7 +720,7 @@ namespace TestClientSimulator
                 for (int i = 0; i < totalNumOfClients; i++)
                 {
                     ConnectToServer();
-                    Thread.Sleep(1);
+                    //Thread.Sleep(1);
                 }
 
                 Console.WriteLine("Made all the connections");
@@ -750,9 +743,29 @@ namespace TestClientSimulator
                 {
                     Socket client = (Socket)dict.Value;
                     SendMessage(client);
-                    Thread.Sleep(1);
+                    //Thread.Sleep(1);
                 }
             }
+        }
+
+        private void MessagesProduced(/*object course, ElapsedEventArgs e*/)
+        {
+            while (true)
+            {
+                Thread.Sleep(1000);
+
+                int pktsProduced = (numOfPktsProduced - prevNumOfPktsProduced);
+                Console.WriteLine("Packets processed: {0}", pktsProduced);
+                prevNumOfPktsProduced = numOfPktsProduced;
+            }
+        }
+
+        private void MessageProductionRate()
+        {
+            aTimer = new System.Timers.Timer(500);
+            //aTimer.Elapsed += MessagesProduced;
+            aTimer.AutoReset = true;
+            aTimer.Enabled = true;
         }
 
         static void Main(string[] args)
@@ -782,6 +795,9 @@ namespace TestClientSimulator
             Thread t4 = new Thread(CleanUpReceiveQueue);
             t4.Start();
 
+            Thread t5 = new Thread(simulator.MessagesProduced);
+            t5.Start();
+
             Initialize();
             SendMessage();
 
@@ -789,6 +805,7 @@ namespace TestClientSimulator
             t2.Join();
             t3.Join();
             t4.Join();
+            t5.Join();
         }
     }
 }
