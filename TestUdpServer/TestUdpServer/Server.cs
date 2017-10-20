@@ -735,7 +735,7 @@ namespace TestUdpServer
             Thread t2 = new Thread(() => server.ProcessSendBuffer());
             t2.Start();
             Thread t3 = new Thread(server.messagesRate);
-            //t3.Start();
+            t3.Start();
             Thread t4 = new Thread(server.ProcessBroadcastBuffer);
             t4.Start();
             //Thread t5 = new Thread(server.SendACKToClient);

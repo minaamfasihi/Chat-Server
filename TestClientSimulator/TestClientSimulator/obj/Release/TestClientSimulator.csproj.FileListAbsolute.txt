@@ -1,0 +1,6 @@
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\bin\Release\TestClientSimulator.exe.config
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\bin\Release\TestClientSimulator.exe
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\bin\Release\TestClientSimulator.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\obj\Release\TestClientSimulator.csproj.CoreCompileInputs.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\obj\Release\TestClientSimulator.exe
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestClientSimulator\TestClientSimulator\obj\Release\TestClientSimulator.pdb

@@ -317,8 +317,9 @@ namespace TestClientSimulator
                     Packet sendData = new Packet(friend);
                     string clientName = client.LocalEndPoint.ToString();
                     sendData.SenderName = clientName;
-                    sendData.ChatMessage = @"TestingTestingTestingTestingTestingTestingTestingTestingTestingTesting\" +
-                        "TestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTesting";
+                    //sendData.ChatMessage = @"TestingTestingTestingTestingTestingTestingTestingTestingTestingTesting\" +
+                    //    "TestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTesting";
+                    sendData.ChatMessage = "Hello";
                     sendData.SequenceNumber = nextSequenceNumber(clientName);
                     sendData.ChatDataIdentifier = DataIdentifier.Message;
 
@@ -331,22 +332,22 @@ namespace TestClientSimulator
                         Queue<Packet> q = (Queue<Packet>)sendMessageBuffer[sendData.SenderName];
                         //if (q.Count < windowSize && liesInRangeForSend(q)) 
                         {
-                            lock (syncSendBuffer)
-                            {
-                                q.Enqueue(sendData);
-                            }
+                            //lock (syncSendBuffer)
+                            //{
+                            //    q.Enqueue(sendData);
+                            //}
                         }
                     }
                     else
                     {
                         Queue<Packet> q = new Queue<Packet>();
-                        lock (syncSendBuffer)
-                        {
-                            q.Enqueue(sendData);
-                            sendMessageBuffer.Add(sendData.SenderName, q);
-                        }
+                        //lock (syncSendBuffer)
+                        //{
+                        //    q.Enqueue(sendData);
+                        //    sendMessageBuffer.Add(sendData.SenderName, q);
+                        //}
                     }
-                    processSendQueue.Set();
+                    //processSendQueue.Set();
                 }
             }
             catch (Exception e)
@@ -488,59 +489,59 @@ namespace TestClientSimulator
             try
             {
                 // Receive all data
-                StateObject clientObj = (StateObject)ar.AsyncState;
-                Socket client = clientObj.client;
-                client.EndReceive(ar);
+                //StateObject clientObj = (StateObject)ar.AsyncState;
+                //Socket client = clientObj.client;
+                //client.EndReceive(ar);
 
-                // Initialise a packet object to store the received data
-                Packet receivedData = new Packet(clientObj.dataStream);
+                //// Initialise a packet object to store the received data
+                //Packet receivedData = new Packet(clientObj.dataStream);
 
-                if (receivedData.ChatMessage == "ACK")
-                {
-                    if (sentACKEDSequenceNumbers.Contains(receivedData.RecipientName))
-                    {
-                        sentACKEDSequenceNumbers[receivedData.RecipientName] = receivedData.SequenceNumber;
-                    }
-                    else
-                    {
-                        sentACKEDSequenceNumbers.Add(receivedData.RecipientName, receivedData.SequenceNumber);
-                    }
-                    cleanSendQueue.Set();
-                }
+                //if (receivedData.ChatMessage == "ACK")
+                //{
+                //    if (sentACKEDSequenceNumbers.Contains(receivedData.RecipientName))
+                //    {
+                //        sentACKEDSequenceNumbers[receivedData.RecipientName] = receivedData.SequenceNumber;
+                //    }
+                //    else
+                //    {
+                //        sentACKEDSequenceNumbers.Add(receivedData.RecipientName, receivedData.SequenceNumber);
+                //    }
+                //    cleanSendQueue.Set();
+                //}
 
-                else
-                {
-                    if (liesInRangeForReceive(receivedData))
-                    {
-                        if (receiveMessageBuffer.Contains(receivedData.SenderName))
-                        {
-                            SortedDictionary<int, Packet> temp = (SortedDictionary<int, Packet>)receiveMessageBuffer[receivedData.SenderName];
-                            lock (syncReceiveBuffer)
-                            {
-                                temp.Add(receivedData.SequenceNumber, receivedData);
-                            }
-                        }
-                        else
-                        {
-                            SortedDictionary<int, Packet> temp = new SortedDictionary<int, Packet>();
-                            temp.Add(receivedData.SequenceNumber, receivedData);
+                //else
+                //{
+                //    if (liesInRangeForReceive(receivedData))
+                //    {
+                //        if (receiveMessageBuffer.Contains(receivedData.SenderName))
+                //        {
+                //            SortedDictionary<int, Packet> temp = (SortedDictionary<int, Packet>)receiveMessageBuffer[receivedData.SenderName];
+                //            lock (syncReceiveBuffer)
+                //            {
+                //                temp.Add(receivedData.SequenceNumber, receivedData);
+                //            }
+                //        }
+                //        else
+                //        {
+                //            SortedDictionary<int, Packet> temp = new SortedDictionary<int, Packet>();
+                //            temp.Add(receivedData.SequenceNumber, receivedData);
 
-                            lock (syncReceiveBuffer)
-                            {
-                                receiveMessageBuffer.Add(receivedData.SenderName, temp);
-                            }
-                        }
-                        SendACKToServer(receivedData.SenderName, receivedData.RecipientName);
-                    }
-                }
+                //            lock (syncReceiveBuffer)
+                //            {
+                //                receiveMessageBuffer.Add(receivedData.SenderName, temp);
+                //            }
+                //        }
+                //        SendACKToServer(receivedData.SenderName, receivedData.RecipientName);
+                //    }
+                //}
 
                 // Reset data stream
-                StateObject obj = new StateObject();
-                obj.dataStream = new byte[1024];
-                obj.client = client;
-                receiveDone.Set();
-                // Continue listening for broadcasts
-                client.BeginReceiveFrom(obj.dataStream, 0, obj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), obj);
+                //StateObject obj = new StateObject();
+                //obj.dataStream = new byte[1024];
+                //obj.client = client;
+                //receiveDone.Set();
+                //// Continue listening for broadcasts
+                //client.BeginReceiveFrom(obj.dataStream, 0, obj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), obj);
             }
 
             catch (ObjectDisposedException o)
@@ -779,7 +780,7 @@ namespace TestClientSimulator
 
             ClientSimulator simulator = new ClientSimulator();
             Thread t1 = new Thread(simulator.ProcessSendQueue);
-            t1.Start();
+            //t1.Start();
 
             Thread t2 = new Thread(() => logger.WriteToFile(fileName));
             t2.Start();
