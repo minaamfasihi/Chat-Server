@@ -25,6 +25,7 @@ namespace TestClientSimulator
         int lastReceiveACK;
         int lastSentACK;
         int portNum;
+        Socket sock;
 
         public Client()
         {
@@ -32,6 +33,7 @@ namespace TestClientSimulator
             lastReceiveACK = 0;
             lastSentACK = 0;
             portNum = 0;
+            sock = null;
         }
 
         void ReceiveMessage()
@@ -42,7 +44,7 @@ namespace TestClientSimulator
 
     class ClientSimulator
     {
-        private static ConcurrentDictionary<string, Client> clientObjects = new ConcurrentDictionary<string, Client>();
+        private static ConcurrentDictionary<string, Socket> clientObjects = new ConcurrentDictionary<string, Socket>();
 
         // Server End Point
         private static EndPoint epServer;
@@ -56,7 +58,6 @@ namespace TestClientSimulator
         private static AutoResetEvent cleanSendQueue = new AutoResetEvent(false);
         private static AutoResetEvent cleanReceiveQueue = new AutoResetEvent(false);
         private static AutoResetEvent throttleSender = new AutoResetEvent(false);
-        // Instance level sequence numbers
 
         private static Hashtable ClientSockets = new Hashtable();
 
@@ -159,7 +160,7 @@ namespace TestClientSimulator
         public static void LBRequestForServer(Socket client)
         {
             string logMsg = DateTime.Now + "\t In LBRequestForServer()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
 
             try
             {
@@ -187,7 +188,7 @@ namespace TestClientSimulator
         public static void LBRequestForServerCallback(IAsyncResult ar)
         {
             string logMsg = DateTime.Now + "\t In LBRequestForServerCallback()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
             try
             {
                 Socket client = (Socket)ar.AsyncState;
@@ -265,6 +266,7 @@ namespace TestClientSimulator
 
 
                 ClientSockets.Add(name, client);
+                clientObjects.TryAdd(name, client);
                 incrementPortNumber.Set();
                 // Get packet as byte array
                 byte[] data = sendData.GetDataStream();
@@ -629,6 +631,8 @@ namespace TestClientSimulator
 
         private static void Initialize()
         {
+            SimulateClients();
+
             char[] delimiters = { ':' };
             string friendAddress = "";
 
@@ -799,8 +803,6 @@ namespace TestClientSimulator
             serverIPAddress = args[5].ToString();
             clientIPAddress = args[6].ToString();
             incrementPortNumber.Set();
-
-            SimulateClients();
 
             ClientSimulator simulator = new ClientSimulator();
             Thread t1 = new Thread(simulator.ProcessSendQueue);
