@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Collections;
 using System.Timers;
 using LogWriterAPI;
+using System.Collections.Concurrent;
 
 namespace TestClientSimulator
 {
@@ -18,8 +19,31 @@ namespace TestClientSimulator
         public byte[] dataStream = new byte[1024];
     }
 
+    class Client
+    {
+        Queue<Packet> sendQueue;
+        int lastReceiveACK;
+        int lastSentACK;
+        int portNum;
+
+        public Client()
+        {
+            this.sendQueue = new Queue<Packet>();
+            lastReceiveACK = 0;
+            lastSentACK = 0;
+            portNum = 0;
+        }
+
+        void ReceiveMessage()
+        {
+
+        }
+    }
+
     class ClientSimulator
     {
+        private static ConcurrentDictionary<string, Client> clientObjects = new ConcurrentDictionary<string, Client>();
+
         // Server End Point
         private static EndPoint epServer;
 
@@ -37,7 +61,7 @@ namespace TestClientSimulator
         private static Hashtable ClientSockets = new Hashtable();
 
         private static int LBport = 9000;
-        private static int availablePortNumsOffset; // = 10000;
+        private static int availablePortNumsOffset;
         private static int startPortNumber;
         private static int endPortNumber;
         private static int numOfPktsSent = 0;
