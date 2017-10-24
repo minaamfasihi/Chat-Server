@@ -12,39 +12,15 @@ using System.Collections.Concurrent;
 
 namespace TestClientSimulator
 {
-
     class StateObject
     {
         public Socket client = null;
         public byte[] dataStream = new byte[1024];
     }
 
-    class Client
-    {
-        Queue<Packet> sendQueue;
-        int lastReceiveACK;
-        int lastSentACK;
-        int portNum;
-        Socket sock;
-
-        public Client()
-        {
-            this.sendQueue = new Queue<Packet>();
-            lastReceiveACK = 0;
-            lastSentACK = 0;
-            portNum = 0;
-            sock = null;
-        }
-
-        void ReceiveMessage()
-        {
-
-        }
-    }
-
     class ClientSimulator
     {
-        private static ConcurrentDictionary<string, Socket> clientObjects = new ConcurrentDictionary<string, Socket>();
+        private static ConcurrentDictionary<string, Client> ClientObjects = new ConcurrentDictionary<string, Client>();
 
         // Server End Point
         private static EndPoint epServer;
@@ -114,7 +90,7 @@ namespace TestClientSimulator
             try
             {
                 logMsg = DateTime.Now + "\t In ConnectToLoadBalancer()";
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
 
                 IPAddress ipAddr = IPAddress.Parse(LBIPAddress);
                 IPEndPoint remoteEndPoint = new IPEndPoint(ipAddr, LBport);
@@ -126,20 +102,20 @@ namespace TestClientSimulator
                 connectDone.WaitOne();
 
                 logMsg = DateTime.Now + "\t Exiting ConnectToLoadBalancer()";
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
 
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
         }
 
         public static void LBConnectCallback(IAsyncResult ar)
         {
             string logMsg = DateTime.Now + "\t In LBConnectToCallback()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
 
             try
             {
@@ -151,10 +127,10 @@ namespace TestClientSimulator
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
             logMsg = DateTime.Now + "\t Exiting LBConnectCallback()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         public static void LBRequestForServer(Socket client)
@@ -178,11 +154,11 @@ namespace TestClientSimulator
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
 
             logMsg = DateTime.Now + "\t Exiting LBRequestForServer()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         public static void LBRequestForServerCallback(IAsyncResult ar)
@@ -203,16 +179,16 @@ namespace TestClientSimulator
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
             logMsg = DateTime.Now + "\t Exiting LBRequestForServerCallback()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         public static void LBReceiveCallback(IAsyncResult ar)
         {
             string logMsg = DateTime.Now + "\t In LBReceiveCallBack()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
             try
             {
                 StateObject clientObj = (StateObject)ar.AsyncState;
@@ -233,7 +209,7 @@ namespace TestClientSimulator
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
             logMsg = DateTime.Now + "\t Exiting LBReceiveCallback()";
             logger.Log(logMsg);;
@@ -246,17 +222,16 @@ namespace TestClientSimulator
 
             try
             {
-
                 incrementPortNumber.WaitOne();
                 String name = availablePortNumsOffset.ToString();
                 availablePortNumsOffset++;
 
                 epSet.WaitOne();
                 // Initialise socket
-                Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                client.Bind(new IPEndPoint(IPAddress.Parse(clientIPAddress), int.Parse(name)));
-
-                name = client.LocalEndPoint.ToString();
+                Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                s.Bind(new IPEndPoint(IPAddress.Parse(clientIPAddress), int.Parse(name)));
+                
+                name = s.LocalEndPoint.ToString();
 
                 Packet sendData = new Packet();
                 sendData.SenderName = name;
@@ -264,22 +239,24 @@ namespace TestClientSimulator
                 sendData.ChatMessage = null;
                 sendData.ChatDataIdentifier = DataIdentifier.LogIn;
 
+                ClientSockets.Add(name, s);
 
-                ClientSockets.Add(name, client);
-                clientObjects.TryAdd(name, client);
+                Client client = new Client(s);
+
+                ClientObjects.TryAdd(name, client);
                 incrementPortNumber.Set();
                 // Get packet as byte array
                 byte[] data = sendData.GetDataStream();
 
                 // Send data to server
-                client.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), client);
+                //client.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), client);
 
                 // Begin listening for messages
                 numOfPktsReceived++;
                 sendDone.WaitOne();
                 StateObject clientObj = new StateObject();
                 clientObj.client = client;
-                client.BeginReceiveFrom(clientObj.dataStream, 0, clientObj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), clientObj);
+                //client.BeginReceiveFrom(clientObj.dataStream, 0, clientObj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), clientObj);
             }
             catch (Exception e)
             {
@@ -462,7 +439,7 @@ namespace TestClientSimulator
 
                 string logMsg = "";
                 logMsg = DateTime.Now + ":\t In ProcessSendQueue()";
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
 
                 try
                 {
