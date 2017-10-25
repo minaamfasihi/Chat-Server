@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Net;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,20 +9,100 @@ namespace TestClientSimulator
 {
     class Client
     {
-        Queue<byte[]> sendQueue;
-        Queue<byte[]> receiveQueue;
-        int lastReceiveACK;
-        int lastSentACK;
-        int portNum;
-        Socket sock;
+        Queue<byte[]> _sendQueue;
+        Queue<byte[]> _receiveQueue;
+        int _lastReceiveACK;
+        int _lastSentACK;
+        int _portNum;
+        Socket _socket;
 
         public Client(Socket s)
         {
-            sendQueue = new Queue<byte[]>();
-            lastReceiveACK = 0;
-            lastSentACK = 0;
-            portNum = 0;
-            sock = s;
+            _sendQueue = new Queue<byte[]>();
+            _lastReceiveACK = 0;
+            _lastSentACK = 0;
+            _portNum = 0;
+            _socket = s;
+        }
+
+        public Socket socket
+        {
+            get { return _socket; }
+            set { _socket = value; }
+        }
+
+        public int LastReceiveACK
+        {
+            get { return _lastReceiveACK; }
+            set { _lastReceiveACK = value; }
+        }
+
+        public int LastSentACK
+        {
+            get { return _lastSentACK; }
+            set { _lastSentACK = value; }
+        }
+
+        public int PortNumber
+        {
+            get { return _portNum; }
+            set { _portNum = value; }
+        }
+
+        public Queue<byte[]> SendQueue
+        {
+            get { return _sendQueue; }
+        }
+
+        public Queue<byte[]> ReceiveQueue
+        {
+            get { return _receiveQueue; }
+        }
+
+        public void InsertInSendQueue(byte[] byteData)
+        {
+            _sendQueue.Enqueue(byteData);
+        }
+
+        public byte[] PeekAtSendQueue()
+        {
+            if (_sendQueue.Count != 0)
+            {
+                return _sendQueue.Peek();
+            }
+            return null;
+        }
+
+        public byte[] RemoveFromSendQueue()
+        {
+            if (_sendQueue.Count != 0)
+            {
+                return _sendQueue.Dequeue();
+            }
+            return null;
+        }
+
+        public void InsertInReceiveQueue(byte[] byteData)
+        {
+            _receiveQueue.Enqueue(byteData);
+        }
+
+        public byte[] PeekAtReceiveQueue()
+        {
+            if (_receiveQueue.Count != 0)
+            {
+                return _receiveQueue.Peek();
+            }
+            return null;
+        }
+
+        public byte[] RemoveFromReceiveQueue()
+        {
+            if (_receiveQueue.Count != 0)
+            {
+                return _receiveQueue.Dequeue();
+            }
+            return null;
         }
 
         public void SendMessage(Packet pkt, EndPoint epServer)
@@ -31,8 +110,8 @@ namespace TestClientSimulator
             try
             {
                 byte[] byteData = pkt.GetDataStream();
-                sendQueue.Enqueue(byteData);
-                sock.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer, new AsyncCallback(SendCallback), sock);
+                InsertInSendQueue(byteData);
+                _socket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer, new AsyncCallback(SendCallback), _socket);
             }
             catch (Exception e)
             {
@@ -61,7 +140,7 @@ namespace TestClientSimulator
             {
                 StateObject obj = new StateObject();
                 obj.dataStream = pkt.GetDataStream();
-                sock.BeginReceiveFrom(obj.dataStream, 0, obj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveCallback), obj);
+                _socket.BeginReceiveFrom(obj.dataStream, 0, obj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveCallback), obj);
             }
             catch (Exception e)
             {
@@ -74,8 +153,8 @@ namespace TestClientSimulator
             try
             {
                 StateObject clientObj = (StateObject)ar.AsyncState;
-                sock.EndReceive(ar);
-                sendQueue.Enqueue(clientObj.dataStream);
+                _socket.EndReceive(ar);
+                _sendQueue.Enqueue(clientObj.dataStream);
             }
             catch (Exception e)
             {
