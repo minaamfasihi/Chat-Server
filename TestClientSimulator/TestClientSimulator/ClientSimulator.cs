@@ -14,7 +14,7 @@ namespace TestClientSimulator
 {
     class StateObject
     {
-        public Socket client = null;
+        public Socket socket = null;
         public byte[] dataStream = new byte[1024];
     }
 
@@ -167,13 +167,13 @@ namespace TestClientSimulator
             logger.Log(logMsg);
             try
             {
-                Socket client = (Socket)ar.AsyncState;
-                client.EndSend(ar);
+                Socket clientSocket = (Socket)ar.AsyncState;
+                clientSocket.EndSend(ar);
                 sendDone.Set();
                 receiveDone.Reset();
                 StateObject clientObj = new StateObject();
-                clientObj.client = client;
-                client.BeginReceive(clientObj.dataStream, 0, clientObj.dataStream.Length, 0, new AsyncCallback(LBReceiveCallback), clientObj);
+                clientObj.socket = clientSocket;
+                clientSocket.BeginReceive(clientObj.dataStream, 0, clientObj.dataStream.Length, 0, new AsyncCallback(LBReceiveCallback), clientObj);
                 receiveDone.WaitOne();
             }
             catch (Exception e)
@@ -192,7 +192,7 @@ namespace TestClientSimulator
             try
             {
                 StateObject clientObj = (StateObject)ar.AsyncState;
-                Socket client = clientObj.client;
+                Socket client = clientObj.socket;
                 byte[] dataStream = clientObj.dataStream;
                 client.EndReceive(ar);
                 
@@ -212,7 +212,7 @@ namespace TestClientSimulator
                 logger.Log(logMsg);
             }
             logMsg = DateTime.Now + "\t Exiting LBReceiveCallback()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         public static void ConnectToServer()
@@ -249,25 +249,30 @@ namespace TestClientSimulator
                 byte[] data = sendData.GetDataStream();
 
                 // Send data to server
-                //client.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), client);
+                client.SendMessage(sendData, epServer);
+                client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), client);
 
                 // Begin listening for messages
                 numOfPktsReceived++;
                 sendDone.WaitOne();
                 StateObject clientObj = new StateObject();
-                clientObj.client = client;
+                clientObj.socket = s;
+
+                Packet pkt = new Packet();
+                client.ReceiveMessage(pkt, epServer);
+                //client.socket.BeginReceiveFrom(clientObj.dataStream, 0, clientObj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), clientObj);
                 //client.BeginReceiveFrom(clientObj.dataStream, 0, clientObj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), clientObj);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
                 incrementPortNumber.Set();
             }
 
             logMsg = DateTime.Now + "\t Exiting ConnectToServer()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         private static bool liesInRangeForSend(Queue<Packet> queue)
@@ -403,7 +408,7 @@ namespace TestClientSimulator
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
 
             logMsg = DateTime.Now + "\t Exiting SendData()";
@@ -418,7 +423,7 @@ namespace TestClientSimulator
             try
             {
                 StateObject clientObj = (StateObject)ar.AsyncState;
-                clientObj.client.EndSendTo(ar);
+                clientObj.socket.EndSendTo(ar);
                 sendDone.Set();
             }
             catch (Exception e)
@@ -493,7 +498,7 @@ namespace TestClientSimulator
             {
                 // Receive all data
                 StateObject clientObj = (StateObject)ar.AsyncState;
-                Socket client = clientObj.client;
+                Socket client = clientObj.socket;
                 client.EndReceive(ar);
 
                 // Initialise a packet object to store the received data
@@ -541,7 +546,7 @@ namespace TestClientSimulator
                 // Reset data stream
                 StateObject obj = new StateObject();
                 obj.dataStream = new byte[1024];
-                obj.client = client;
+                obj.socket = client;
                 receiveDone.Set();
                 // Continue listening for broadcasts
                 client.BeginReceiveFrom(obj.dataStream, 0, obj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), obj);
@@ -598,8 +603,8 @@ namespace TestClientSimulator
                 cleanReceiveQueue.Set();
                 byte[] data = sendData.GetDataStream();
                 StateObject obj = new StateObject();
-                obj.client = (Socket)ClientSockets[senderName];
-                obj.client.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataObject), obj);
+                obj.socket = (Socket)ClientSockets[senderName];
+                obj.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataObject), obj);
             }
 
             logMsg = DateTime.Now + ":\t Exiting SendACKToServer()";
@@ -795,10 +800,10 @@ namespace TestClientSimulator
             t4.Start();
 
             Thread t5 = new Thread(simulator.MessageProductionRate);
-            t5.Start();
+            //t5.Start();
 
             Initialize();
-            SendMessage();
+            //SendMessage();
 
             t1.Join();
             t2.Join();

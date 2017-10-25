@@ -125,7 +125,6 @@ namespace TestClientSimulator
             {
                 Socket client = (Socket)ar.AsyncState;
                 client.EndSendTo(ar);
-                Console.WriteLine();
                 //sendDone.Set();
             }
             catch (Exception e)
@@ -155,6 +154,10 @@ namespace TestClientSimulator
                 StateObject clientObj = (StateObject)ar.AsyncState;
                 _socket.EndReceive(ar);
                 _sendQueue.Enqueue(clientObj.dataStream);
+                Packet p = new Packet(clientObj.dataStream);
+                Console.WriteLine("Sender: {0}", p.SenderName);
+                Console.WriteLine("Recipient: {0}", p.RecipientName);
+                Console.WriteLine("Chat Message: {0}", p.ChatMessage);
             }
             catch (Exception e)
             {
