@@ -227,7 +227,6 @@ namespace TestClientSimulator
                 availablePortNumsOffset++;
 
                 epSet.WaitOne();
-                // Initialise socket
                 Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 s.Bind(new IPEndPoint(IPAddress.Parse(clientIPAddress), int.Parse(name)));
                 
@@ -250,11 +249,11 @@ namespace TestClientSimulator
 
                 // Send data to server
                 client.SendMessage(sendData, epServer);
-                client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), client);
+                //client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), client);
 
                 // Begin listening for messages
                 numOfPktsReceived++;
-                sendDone.WaitOne();
+                //sendDone.WaitOne();
                 StateObject clientObj = new StateObject();
                 clientObj.socket = s;
 
@@ -302,14 +301,14 @@ namespace TestClientSimulator
             Console.WriteLine("Current port number is: {0}", availablePortNumsOffset);
         }
 
-        public static void SendMessage(Socket client)
+        public static void SendMessage(Client client)
         {
             string logMsg = DateTime.Now + "\t In SendMessage()";
             logger.Log(logMsg);;
 
             try
             {
-                string sender = client.LocalEndPoint.ToString();
+                string sender = client.socket.LocalEndPoint.ToString();
                 string friend = "";
                 if (friendOf.ContainsKey(sender))
                 {
@@ -323,8 +322,7 @@ namespace TestClientSimulator
                 if (friend != "")
                 {
                     Packet sendData = new Packet(friend);
-                    string clientName = client.LocalEndPoint.ToString();
-                    sendData.SenderName = clientName;
+                    sendData.SenderName = sender;
                     //sendData.ChatMessage = @"TestingTestingTestingTestingTestingTestingTestingTestingTestingTesting\" +
                     //    "TestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTesting";
                     sendData.ChatMessage = "Hello";
@@ -335,25 +333,17 @@ namespace TestClientSimulator
                     {
                         return;
                     }
-                    if (sendMessageBuffer.Contains(sendData.SenderName))
+                    if (ClientObjects.ContainsKey(sendData.SenderName))
                     {
-                        Queue<Packet> q = (Queue<Packet>)sendMessageBuffer[sendData.SenderName];
-                        //if (q.Count < windowSize && liesInRangeForSend(q)) 
-                        {
-                            lock (syncSendBuffer)
-                            {
-                                q.Enqueue(sendData);
-                            }
-                        }
+                        Queue<byte[]> q = ClientObjects[sendData.SenderName].SendQueue;
+                        // if (q.Count < windowSize && liesInRangeForSend(q))
+                        q.Enqueue(sendData.GetDataStream());
                     }
                     else
                     {
-                        Queue<Packet> q = new Queue<Packet>();
-                        lock (syncSendBuffer)
-                        {
-                            q.Enqueue(sendData);
-                            sendMessageBuffer.Add(sendData.SenderName, q);
-                        }
+                        Queue<byte[]> q = new Queue<byte[]>();
+                        q.Enqueue(sendData.GetDataStream());
+                        sendMessageBuffer.Add(sendData.SenderName, q);
                     }
                     processSendQueue.Set();
                 }
@@ -361,7 +351,7 @@ namespace TestClientSimulator
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
             logMsg = DateTime.Now + "\t Exiting SendMessage()";
             logger.Log(logMsg);;
@@ -448,44 +438,31 @@ namespace TestClientSimulator
 
                 try
                 {
-                    Hashtable tempSendBuffer = null;
-
-                    lock (syncSendBuffer)
+                    Queue<byte[]> tempQueue = null;
+                    foreach (KeyValuePair<string, Client> keyVal in ClientObjects)
                     {
-                        if (sendMessageBuffer.Count != 0)
+                        tempQueue = keyVal.Value.SendQueue;
+                        if (tempQueue.Count != 0)
                         {
-                            tempSendBuffer = new Hashtable(sendMessageBuffer);
-                        }
-                    }
-
-                    if (tempSendBuffer.Count != 0)
-                    {
-                        foreach (DictionaryEntry keyVal in tempSendBuffer)
-                        {
-                            Queue<Packet> tempQueue = new Queue<Packet>((Queue<Packet>)keyVal.Value);
-                            foreach (var pkt in tempQueue)
+                            foreach (var dataStream in tempQueue)
                             {
-                                byte[] byteData = pkt.GetDataStream();
+                                Packet pkt = new Packet(dataStream);
                                 if (ClientSockets.Contains(pkt.SenderName))
                                 {
                                     Socket clientSocket = (Socket)ClientSockets[pkt.SenderName];
-                                    clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), clientSocket);
+                                    clientSocket.BeginSendTo(dataStream, 0, dataStream.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), clientSocket);
                                 }
                             }
                         }
-                        //Thread.Sleep(1);
                     }
-
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
-                    logger.Log(logMsg);;
+                    logger.Log(logMsg); ;
                 }
                 catch (Exception e)
                 {
                     logMsg = DateTime.Now + ":\t " + e.ToString();
-                    logger.Log(logMsg);;
+                    logger.Log(logMsg); ;
                 }
-
-                //Thread.Sleep(10);
             }
         }
 
@@ -731,7 +708,6 @@ namespace TestClientSimulator
                 for (int i = 0; i < totalNumOfClients; i++)
                 {
                     ConnectToServer();
-                    //Thread.Sleep(1);
                 }
 
                 Console.WriteLine("Made all the connections");
@@ -750,11 +726,10 @@ namespace TestClientSimulator
         {
             while (true)
             {
-                foreach (DictionaryEntry dict in ClientSockets)
+                foreach (KeyValuePair<string, Client> keyVal in ClientObjects)
                 {
-                    Socket client = (Socket)dict.Value;
+                    Client client = keyVal.Value;
                     SendMessage(client);
-                    //Thread.Sleep(1);
                 }
             }
         }

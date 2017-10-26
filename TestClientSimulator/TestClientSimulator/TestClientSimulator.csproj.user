@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
-    <StartArguments>6 10000 10002 10000 10.105.27.96 10.105.27.96 10.105.27.96</StartArguments>
+    <StartArguments>2 10000 10001 10000 10.105.12.209 10.105.12.209 10.105.12.209</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <StartArguments>1 10000 30000 10000 10.105.12.209 10.105.12.209 10.105.12.209</StartArguments>
