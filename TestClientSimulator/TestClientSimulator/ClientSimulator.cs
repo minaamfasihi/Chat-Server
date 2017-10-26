@@ -249,7 +249,6 @@ namespace TestClientSimulator
 
                 // Send data to server
                 client.SendMessage(sendData, epServer);
-                //client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), client);
 
                 // Begin listening for messages
                 numOfPktsReceived++;
@@ -259,7 +258,6 @@ namespace TestClientSimulator
 
                 Packet pkt = new Packet();
                 client.ReceiveMessage(pkt, epServer);
-                //client.socket.BeginReceiveFrom(clientObj.dataStream, 0, clientObj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), clientObj);
                 //client.BeginReceiveFrom(clientObj.dataStream, 0, clientObj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), clientObj);
             }
             catch (Exception e)
@@ -323,8 +321,6 @@ namespace TestClientSimulator
                 {
                     Packet sendData = new Packet(friend);
                     sendData.SenderName = sender;
-                    //sendData.ChatMessage = @"TestingTestingTestingTestingTestingTestingTestingTestingTestingTesting\" +
-                    //    "TestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTestingTesting";
                     sendData.ChatMessage = "Hello";
                     sendData.SequenceNumber = 1; // nextSequenceNumber(clientName);
                     sendData.ChatDataIdentifier = DataIdentifier.Message;
@@ -336,14 +332,13 @@ namespace TestClientSimulator
                     if (ClientObjects.ContainsKey(sendData.SenderName))
                     {
                         Queue<byte[]> q = ClientObjects[sendData.SenderName].SendQueue;
-                        // if (q.Count < windowSize && liesInRangeForSend(q))
                         q.Enqueue(sendData.GetDataStream());
                     }
                     else
                     {
-                        Queue<byte[]> q = new Queue<byte[]>();
-                        q.Enqueue(sendData.GetDataStream());
-                        sendMessageBuffer.Add(sendData.SenderName, q);
+                        //Queue<byte[]> q = new Queue<byte[]>();
+                        //q.Enqueue(sendData.GetDataStream());
+                        //sendMessageBuffer.Add(sendData.SenderName, q);
                     }
                     processSendQueue.Set();
                 }
@@ -778,7 +773,7 @@ namespace TestClientSimulator
             //t5.Start();
 
             Initialize();
-            //SendMessage();
+            SendMessage();
 
             t1.Join();
             t2.Join();

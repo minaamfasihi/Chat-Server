@@ -310,6 +310,9 @@ namespace TestUdpServer
                                 {
                                     sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]);
                                 }
+                                Console.WriteLine("Sender: {0}", receivedData.SenderName);
+                                Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
+                                Console.WriteLine("Message: {0}", receivedData.ChatMessage);
                                 if (sortedDict.Count != 0)
                                 {
                                     int startOffset = sortedDict.Keys.First();

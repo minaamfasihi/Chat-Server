@@ -125,7 +125,6 @@ namespace TestClientSimulator
             {
                 Socket client = (Socket)ar.AsyncState;
                 client.EndSendTo(ar);
-                //sendDone.Set();
             }
             catch (Exception e)
             {
