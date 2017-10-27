@@ -156,7 +156,7 @@ namespace TestClientSimulator
             {
                 StateObject clientObj = (StateObject)ar.AsyncState;
                 _socket.EndReceive(ar);
-                _sendQueue.Enqueue(clientObj.dataStream);
+                _readSendBuffer.Enqueue(clientObj.dataStream);
                 Packet p = new Packet(clientObj.dataStream);
                 Console.WriteLine("Sender: {0}", p.SenderName);
                 Console.WriteLine("Recipient: {0}", p.RecipientName);
