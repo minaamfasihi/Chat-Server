@@ -9,7 +9,10 @@ namespace TestClientSimulator
 {
     class Client
     {
-        Queue<byte[]> _sendQueue;
+        Queue<byte[]> _readSendBuffer;
+        Queue<byte[]> _writeSendBuffer;
+        Queue<byte[]> _worker1;
+        Queue<byte[]> _worker2;
         Queue<byte[]> _receiveQueue;
         int _lastReceiveACK;
         int _lastSentACK;
@@ -18,7 +21,8 @@ namespace TestClientSimulator
 
         public Client(Socket s)
         {
-            _sendQueue = new Queue<byte[]>();
+            _writeSendBuffer = new Queue<byte[]>();
+            _readSendBuffer = new Queue<byte[]>();
             _lastReceiveACK = 0;
             _lastSentACK = 0;
             _portNum = 0;
@@ -51,7 +55,7 @@ namespace TestClientSimulator
 
         public Queue<byte[]> SendQueue
         {
-            get { return _sendQueue; }
+            get { return _writeSendBuffer; }
         }
 
         public Queue<byte[]> ReceiveQueue
@@ -61,23 +65,23 @@ namespace TestClientSimulator
 
         public void InsertInSendQueue(byte[] byteData)
         {
-            _sendQueue.Enqueue(byteData);
+            _writeSendBuffer.Enqueue(byteData);
         }
 
         public byte[] PeekAtSendQueue()
         {
-            if (_sendQueue.Count != 0)
+            if (_readSendBuffer.Count != 0)
             {
-                return _sendQueue.Peek();
+                return _readSendBuffer.Peek();
             }
             return null;
         }
 
         public byte[] RemoveFromSendQueue()
         {
-            if (_sendQueue.Count != 0)
+            if (_readSendBuffer.Count != 0)
             {
-                return _sendQueue.Dequeue();
+                return _readSendBuffer.Dequeue();
             }
             return null;
         }

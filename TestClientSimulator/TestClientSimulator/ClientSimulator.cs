@@ -436,7 +436,7 @@ namespace TestClientSimulator
                     Queue<byte[]> tempQueue = null;
                     foreach (KeyValuePair<string, Client> keyVal in ClientObjects)
                     {
-                        tempQueue = keyVal.Value.SendQueue;
+                        tempQueue = new Queue<byte[]>(keyVal.Value.SendQueue);
                         if (tempQueue.Count != 0)
                         {
                             foreach (var dataStream in tempQueue)
@@ -456,7 +456,7 @@ namespace TestClientSimulator
                 catch (Exception e)
                 {
                     logMsg = DateTime.Now + ":\t " + e.ToString();
-                    logger.Log(logMsg); ;
+                    logger.Log(logMsg);
                 }
             }
         }
@@ -585,8 +585,6 @@ namespace TestClientSimulator
 
         private static void Initialize()
         {
-            SimulateClients();
-
             char[] delimiters = { ':' };
             string friendAddress = "";
 
@@ -756,6 +754,7 @@ namespace TestClientSimulator
             clientIPAddress = args[6].ToString();
             incrementPortNumber.Set();
 
+            SimulateClients();
             ClientSimulator simulator = new ClientSimulator();
             Thread t1 = new Thread(simulator.ProcessSendQueue);
             t1.Start();
