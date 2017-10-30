@@ -440,6 +440,10 @@ namespace TestClientSimulator
                                 }
                             }
                         }
+                        else
+                        {
+                            keyVal.Value.SwapSendBuffer();
+                        }
                     }
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
                     logger.Log(logMsg);

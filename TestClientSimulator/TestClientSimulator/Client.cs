@@ -18,8 +18,8 @@ namespace TestClientSimulator
 
         Socket _socket;
 
-        object lockProducerBuffer;
-        object lockConsumerBuffer;
+        object lockProducerBuffer = new object();
+        object lockConsumerBuffer = new object ();
 
         int _lastReceiveACK;
         int _lastSentACK;
