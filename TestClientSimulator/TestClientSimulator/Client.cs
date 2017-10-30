@@ -10,19 +10,34 @@ namespace TestClientSimulator
     class Client
     {
         Queue<byte[]> _readSendBuffer;
+        Queue<byte[]> _readSendBuffer1;
+        Queue<byte[]> _readSendBuffer2;
+
         Queue<byte[]> _writeSendBuffer;
-        Queue<byte[]> _worker1;
-        Queue<byte[]> _worker2;
+        Queue<byte[]> _writeSendBuffer1;
+        Queue<byte[]> _writeSendBuffer2;
+
         Queue<byte[]> _receiveQueue;
+
+        Socket _socket;
+
+        object lockSendBuffer;
+        object lockReceiveBuffer;
+
         int _lastReceiveACK;
         int _lastSentACK;
         int _portNum;
-        Socket _socket;
 
         public Client(Socket s)
         {
-            _writeSendBuffer = new Queue<byte[]>();
-            _readSendBuffer = new Queue<byte[]>();
+            _writeSendBuffer1 = new Queue<byte[]>();
+            _readSendBuffer1 = new Queue<byte[]>();
+            _writeSendBuffer2 = new Queue<byte[]>();
+            _readSendBuffer2 = new Queue<byte[]>();
+
+            _readSendBuffer = _readSendBuffer1;
+            _writeSendBuffer = _writeSendBuffer1;
+
             _lastReceiveACK = 0;
             _lastSentACK = 0;
             _portNum = 0;
@@ -84,6 +99,36 @@ namespace TestClientSimulator
                 return _readSendBuffer.Dequeue();
             }
             return null;
+        }
+
+        public void SwapSendBuffer()
+        {
+            lock (lockSendBuffer)
+            {
+                if (_readSendBuffer == _readSendBuffer1)
+                {
+                    _readSendBuffer = _readSendBuffer2;
+                }
+                else
+                {
+                    _readSendBuffer = _readSendBuffer1;
+                }
+            }
+        }
+
+        public void SwapReceiveBuffer()
+        {
+            lock (lockReceiveBuffer)
+            {
+                if (_writeSendBuffer == _writeSendBuffer1)
+                {
+                    _writeSendBuffer = _writeSendBuffer2;
+                }
+                else
+                {
+                    _writeSendBuffer = _writeSendBuffer1
+                }
+            }
         }
 
         public void InsertInReceiveQueue(byte[] byteData)
