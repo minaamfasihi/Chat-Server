@@ -302,7 +302,7 @@ namespace TestClientSimulator
         public static void SendMessage(Client client)
         {
             string logMsg = DateTime.Now + "\t In SendMessage()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
 
             try
             {
@@ -331,14 +331,7 @@ namespace TestClientSimulator
                     }
                     if (ClientObjects.ContainsKey(sendData.SenderName))
                     {
-                        Queue<byte[]> q = ClientObjects[sendData.SenderName].SendQueue;
-                        q.Enqueue(sendData.GetDataStream());
-                    }
-                    else
-                    {
-                        //Queue<byte[]> q = new Queue<byte[]>();
-                        //q.Enqueue(sendData.GetDataStream());
-                        //sendMessageBuffer.Add(sendData.SenderName, q);
+                        ClientObjects[sendData.SenderName].InsertInSendQueue(sendData.GetDataStream());
                     }
                     processSendQueue.Set();
                 }
@@ -433,13 +426,11 @@ namespace TestClientSimulator
 
                 try
                 {
-                    Queue<byte[]> tempQueue = null;
                     foreach (KeyValuePair<string, Client> keyVal in ClientObjects)
                     {
-                        tempQueue = new Queue<byte[]>(keyVal.Value.SendQueue);
-                        if (tempQueue.Count != 0)
+                        if (keyVal.Value.ConsumerSendQueue.Count != 0)
                         {
-                            foreach (var dataStream in tempQueue)
+                            foreach (var dataStream in keyVal.Value.ConsumerSendQueue)
                             {
                                 Packet pkt = new Packet(dataStream);
                                 if (ClientSockets.Contains(pkt.SenderName))
@@ -451,7 +442,7 @@ namespace TestClientSimulator
                         }
                     }
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
-                    logger.Log(logMsg); ;
+                    logger.Log(logMsg);
                 }
                 catch (Exception e)
                 {
@@ -626,9 +617,9 @@ namespace TestClientSimulator
 
                 lock (syncSendBuffer)
                 {
-                    foreach (DictionaryEntry dict in sendMessageBuffer)
+                    foreach (KeyValuePair<string, Client> dict in ClientObjects)
                     {
-                        Queue<Packet> q = (Queue<Packet>)dict.Value;
+                        Queue<byte[]> q = dict.Value.ConsumerSendQueue;
                         int ackedSeqNum = 0;
 
                         if (sentACKEDSequenceNumbers.Contains(dict.Key))
@@ -636,11 +627,16 @@ namespace TestClientSimulator
                             ackedSeqNum = (int)sentACKEDSequenceNumbers[dict.Key];
                             while (q.Any())
                             {
-                                if (q.Peek().SequenceNumber < ackedSeqNum)
+                                int lastACKAtClient = new Packet(q.Peek()).SequenceNumber;
+                                if (lastACKAtClient < ackedSeqNum)
                                 {
                                     q.Dequeue();
                                 }
                                 else break;
+                            }
+                            if (q.Count == 0)
+                            {
+                                dict.Value.SwapSendBuffer();
                             }
                         }
                     }

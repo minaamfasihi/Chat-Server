@@ -30,7 +30,7 @@ namespace TestClientSimulator
             _sendBuffer1 = new Queue<byte[]>();
             _sendBuffer2 = new Queue<byte[]>();
             _producerSendQueue = _sendBuffer1;
-            _consumerSendQueue = _sendBuffer1;
+            _consumerSendQueue = _sendBuffer2;
 
             _lastReceiveACK = 0;
             _lastSentACK = 0;
@@ -62,9 +62,14 @@ namespace TestClientSimulator
             set { _portNum = value; }
         }
 
-        public Queue<byte[]> SendQueue
+        public Queue<byte[]> ProducerSendQueue
         {
             get { return _producerSendQueue; }
+        }
+
+        public Queue<byte[]> ConsumerSendQueue
+        {
+            get { return _consumerSendQueue; }
         }
 
         public Queue<byte[]> ReceiveQueue
