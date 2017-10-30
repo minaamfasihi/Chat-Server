@@ -349,7 +349,7 @@ namespace TestClientSimulator
                 logger.Log(logMsg);
             }
             logMsg = DateTime.Now + "\t Exiting SendMessage()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         //private void Logout(Packet sendData)
@@ -527,13 +527,13 @@ namespace TestClientSimulator
             catch (ObjectDisposedException o)
             {
                 logMsg = DateTime.Now + "\t " + o.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
 
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
 
             logMsg = DateTime.Now + "\t Exiting ReceiveData()";

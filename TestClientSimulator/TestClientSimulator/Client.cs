@@ -9,20 +9,17 @@ namespace TestClientSimulator
 {
     class Client
     {
-        Queue<byte[]> _readSendBuffer;
-        Queue<byte[]> _readSendBuffer1;
-        Queue<byte[]> _readSendBuffer2;
-
-        Queue<byte[]> _writeSendBuffer;
-        Queue<byte[]> _writeSendBuffer1;
-        Queue<byte[]> _writeSendBuffer2;
+        Queue<byte[]> _producerSendQueue;
+        Queue<byte[]> _consumerSendQueue;
+        Queue<byte[]> _sendBuffer1;
+        Queue<byte[]> _sendBuffer2;
 
         Queue<byte[]> _receiveQueue;
 
         Socket _socket;
 
-        object lockSendBuffer;
-        object lockReceiveBuffer;
+        object lockProducerBuffer;
+        object lockConsumerBuffer;
 
         int _lastReceiveACK;
         int _lastSentACK;
@@ -30,13 +27,10 @@ namespace TestClientSimulator
 
         public Client(Socket s)
         {
-            _writeSendBuffer1 = new Queue<byte[]>();
-            _readSendBuffer1 = new Queue<byte[]>();
-            _writeSendBuffer2 = new Queue<byte[]>();
-            _readSendBuffer2 = new Queue<byte[]>();
-
-            _readSendBuffer = _readSendBuffer1;
-            _writeSendBuffer = _writeSendBuffer1;
+            _sendBuffer1 = new Queue<byte[]>();
+            _sendBuffer2 = new Queue<byte[]>();
+            _producerSendQueue = _sendBuffer1;
+            _consumerSendQueue = _sendBuffer1;
 
             _lastReceiveACK = 0;
             _lastSentACK = 0;
@@ -70,7 +64,7 @@ namespace TestClientSimulator
 
         public Queue<byte[]> SendQueue
         {
-            get { return _writeSendBuffer; }
+            get { return _producerSendQueue; }
         }
 
         public Queue<byte[]> ReceiveQueue
@@ -78,79 +72,84 @@ namespace TestClientSimulator
             get { return _receiveQueue; }
         }
 
-        public void InsertInSendQueue(byte[] byteData)
-        {
-            _writeSendBuffer.Enqueue(byteData);
-        }
-
         public byte[] PeekAtSendQueue()
         {
-            if (_readSendBuffer.Count != 0)
-            {
-                return _readSendBuffer.Peek();
-            }
             return null;
         }
 
         public byte[] RemoveFromSendQueue()
         {
-            if (_readSendBuffer.Count != 0)
+            lock (lockProducerBuffer)
             {
-                return _readSendBuffer.Dequeue();
+                if (_producerSendQueue.Count != 0)
+                {
+                    _producerSendQueue.Dequeue();
+                }
             }
             return null;
         }
 
         public void SwapSendBuffer()
         {
-            lock (lockSendBuffer)
+            lock (lockProducerBuffer)
             {
-                if (_readSendBuffer == _readSendBuffer1)
+                if (_producerSendQueue == _sendBuffer1)
                 {
-                    _readSendBuffer = _readSendBuffer2;
+                    _producerSendQueue = _sendBuffer2;
                 }
                 else
                 {
-                    _readSendBuffer = _readSendBuffer1;
+                    _producerSendQueue = _sendBuffer1;
                 }
             }
         }
 
         public void SwapReceiveBuffer()
         {
-            lock (lockReceiveBuffer)
+            lock (lockConsumerBuffer)
             {
-                if (_writeSendBuffer == _writeSendBuffer1)
+                if (_consumerSendQueue == _sendBuffer1)
                 {
-                    _writeSendBuffer = _writeSendBuffer2;
+                    _consumerSendQueue = _sendBuffer2;
                 }
                 else
                 {
-                    _writeSendBuffer = _writeSendBuffer1
+                    _consumerSendQueue = _sendBuffer1;
                 }
+            }
+        }
+
+        public void InsertInSendQueue(byte[] byteData)
+        {
+            lock (lockProducerBuffer)
+            {
+                _producerSendQueue.Enqueue(byteData);
             }
         }
 
         public void InsertInReceiveQueue(byte[] byteData)
         {
-            _receiveQueue.Enqueue(byteData);
+            //lock (lockReceiveBuffer)
+            //{
+            //    _receiveQueue.Enqueue(byteData);
+            //}
         }
 
         public byte[] PeekAtReceiveQueue()
         {
-            if (_receiveQueue.Count != 0)
-            {
-                return _receiveQueue.Peek();
-            }
+            //if (_receiveQueue.Count != 0)
+            //{
+            //    return _receiveQueue.Peek();
+            //}
             return null;
         }
 
         public byte[] RemoveFromReceiveQueue()
         {
-            if (_receiveQueue.Count != 0)
-            {
-                return _receiveQueue.Dequeue();
-            }
+            //if (_receiveQueue.Count != 0)
+            //{
+            //    return _receiveQueue.Dequeue();
+            //}
             return null;
         }
 
@@ -201,7 +200,7 @@ namespace TestClientSimulator
             {
                 StateObject clientObj = (StateObject)ar.AsyncState;
                 _socket.EndReceive(ar);
-                _readSendBuffer.Enqueue(clientObj.dataStream);
+                //_readSendBuffer.Enqueue(clientObj.dataStream);
                 Packet p = new Packet(clientObj.dataStream);
                 Console.WriteLine("Sender: {0}", p.SenderName);
                 Console.WriteLine("Recipient: {0}", p.RecipientName);
