@@ -1,0 +1,6 @@
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\PacketAPI\PacketAPI\bin\Debug\PacketAPI.dll
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\PacketAPI\PacketAPI\bin\Debug\PacketAPI.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\PacketAPI\PacketAPI\obj\Debug\PacketAPI.csprojResolveAssemblyReference.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\PacketAPI\PacketAPI\obj\Debug\PacketAPI.csproj.CoreCompileInputs.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\PacketAPI\PacketAPI\obj\Debug\PacketAPI.dll
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\PacketAPI\PacketAPI\obj\Debug\PacketAPI.pdb
