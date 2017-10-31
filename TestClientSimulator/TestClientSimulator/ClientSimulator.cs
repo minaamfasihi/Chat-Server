@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Collections;
 using System.Timers;
 using LogWriterAPI;
+using PacketAPI;
 using System.Collections.Concurrent;
 
 namespace TestClientSimulator
@@ -390,13 +391,13 @@ namespace TestClientSimulator
             }
 
             logMsg = DateTime.Now + "\t Exiting SendData()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         public static void SendDataObject(IAsyncResult ar)
         {
             string logMsg = DateTime.Now + "\t In SendData()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
 
             try
             {
@@ -407,11 +408,11 @@ namespace TestClientSimulator
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
-                logger.Log(logMsg);;
+                logger.Log(logMsg);
             }
 
             logMsg = DateTime.Now + "\t Exiting SendData()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         private void ProcessSendQueue()

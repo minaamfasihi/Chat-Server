@@ -8,6 +8,7 @@ using TestLoadBalancer;
 using System.IO;
 using System.Diagnostics;
 using LogWriterAPI;
+using PacketAPI;
 
 public class LoadBalancer
 {
