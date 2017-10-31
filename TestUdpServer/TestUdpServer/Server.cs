@@ -42,8 +42,8 @@ namespace TestUdpServer
         private static int prevNumOfPktsSent = 0;
         private static Queue<Packet> buffer = new Queue<Packet>();
         private static Queue<byte[]> tempReceiveBuffer = new Queue<byte[]>();
-        private static Hashtable clientBuffers = new Hashtable();
-        private static Hashtable clientBuffersForBroadcast = new Hashtable();
+        private static ConcurrentDictionary<string, SortedDictionary<int, Packet>> clientBuffers = new ConcurrentDictionary<string, SortedDictionary<int, Packet>>();
+        private static ConcurrentDictionary<string, SortedDictionary<int, Packet>> clientBuffersForBroadcast = new ConcurrentDictionary<string, SortedDictionary<int, Packet>>();
         private static object clientBufferLock = new object();
         private static object clientBufferBroadcastLock = new object();
         private static object tempReceiveBufferLock = new object();
@@ -290,6 +290,9 @@ namespace TestUdpServer
 
         private void ProcessReceiveData()
         {
+            SortedDictionary<int, Packet> sortedDict;
+            SortedDictionary<int, Packet> recipientDict;
+
             while (true)
             {
                 receiveDataEvent.WaitOne();
@@ -304,8 +307,11 @@ namespace TestUdpServer
                         {
                             receivedData = new Packet(tempReceiveBuffer.Dequeue());
                         }
+                        lock (clientBufferLock)
+                        {
+                            sortedDict = new SortedDictionary<int, Packet>(clientBuffers[receivedData.SenderName]);
+                        }
                         Packet sendData = new Packet();
-                        // Start populating the packet to be sent
                         sendData.ChatDataIdentifier = receivedData.ChatDataIdentifier;
                         sendData.SenderName = receivedData.SenderName;
                         sendData.RecipientName = receivedData.RecipientName;
@@ -326,26 +332,20 @@ namespace TestUdpServer
 
                                     if (clientBuffers.ContainsKey(receivedData.SenderName))
                                     {
-                                        SortedDictionary<int, Packet> sortedDict;
-                                        lock (clientBufferLock)
-                                        {
-                                            sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]);
-                                        }
+                                        
                                         Console.WriteLine("Sender: {0}", receivedData.SenderName);
                                         Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
                                         Console.WriteLine("Message: {0}", receivedData.ChatMessage);
                                         if (sortedDict.Count != 0)
                                         {
                                             int startOffset = sortedDict.Keys.First();
-                                            // Check if packet belongs in current window
-
                                             if (receivedData.SequenceNumber >= startOffset && receivedData.SequenceNumber <= startOffset + windowSize)
                                             {
                                                 if (!sortedDict.ContainsKey(receivedData.SequenceNumber))
                                                 {
                                                     lock (clientBufferLock)
                                                     {
-                                                        ((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]).Add(receivedData.SequenceNumber, receivedData);
+                                                        clientBuffers[receivedData.SenderName].Add(receivedData.SequenceNumber, receivedData);
                                                         SendACKToClient(receivedData.SenderName);
                                                         processSendEvent.Set();
                                                     }
@@ -356,7 +356,7 @@ namespace TestUdpServer
                                         {
                                             lock (clientBufferLock)
                                             {
-                                                ((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]).Add(receivedData.SequenceNumber, receivedData);
+                                                clientBuffers[receivedData.SenderName].Add(receivedData.SequenceNumber, receivedData);
                                             }
                                             SendACKToClient(receivedData.SenderName);
                                             processSendEvent.Set();
@@ -368,10 +368,10 @@ namespace TestUdpServer
                                         {
                                             lock (clientBufferBroadcastLock)
                                             {
-                                                SortedDictionary<int, Packet> recipientDict = (SortedDictionary<int, Packet>)clientBuffersForBroadcast[receivedData.RecipientName];
+                                                recipientDict = clientBuffersForBroadcast[receivedData.RecipientName];
                                                 if (!recipientDict.ContainsKey(receivedData.SequenceNumber))
                                                 {
-                                                    ((SortedDictionary<int, Packet>)clientBuffersForBroadcast[receivedData.RecipientName]).Add(receivedData.SequenceNumber, receivedData);
+                                                    clientBuffersForBroadcast[receivedData.RecipientName].Add(receivedData.SequenceNumber, receivedData);
                                                 }
                                             }
                                         }
@@ -381,7 +381,7 @@ namespace TestUdpServer
                                             broadcastMsgs.Add(receivedData.SequenceNumber, receivedData);
                                             lock (clientBufferBroadcastLock)
                                             {
-                                                clientBuffersForBroadcast.Add(receivedData.RecipientName, broadcastMsgs);
+                                                clientBuffersForBroadcast.TryAdd(receivedData.RecipientName, broadcastMsgs);
                                             }
                                         }
                                         processBroadcastEvent.Set();
@@ -402,7 +402,7 @@ namespace TestUdpServer
                                     SortedDictionary<int, Packet> bufferMessages = new SortedDictionary<int, Packet>();
                                     lock (clientBufferLock)
                                     {
-                                        clientBuffers.Add(client.name, bufferMessages);
+                                        clientBuffers.TryAdd(client.name, bufferMessages);
                                     }
                                 }
 
@@ -456,11 +456,11 @@ namespace TestUdpServer
             int seqNumACKed = pkt.SequenceNumber;
             SortedDictionary<int, Packet> sortedDict = null;
 
-            if (clientBuffers.Contains(recipientName))
+            if (clientBuffers.ContainsKey(recipientName))
             {
                 lock (clientBufferLock)
                 {
-                    sortedDict = (SortedDictionary<int, Packet>)clientBuffers[recipientName];
+                    sortedDict = clientBuffers[recipientName];
                     if (sortedDict != null && sortedDict.Count != 0)
                     {
                         for (int i = sortedDict.Keys.First(); sortedDict.Any() && i <= sortedDict.Keys.Last(); i++)
@@ -478,7 +478,7 @@ namespace TestUdpServer
             {
                 lock (clientBufferBroadcastLock)
                 {
-                    sortedDict = (SortedDictionary<int, Packet>)clientBuffersForBroadcast[senderName];
+                    sortedDict = clientBuffersForBroadcast[senderName];
                     if (sortedDict != null && sortedDict.Count != 0)
                     {
                         for (int i = sortedDict.Keys.First(); sortedDict.Any() && i <= sortedDict.Keys.Last(); i++)
@@ -496,26 +496,26 @@ namespace TestUdpServer
         private void ProcessSendBuffer()
         {
             string logMsg = "";
+            ConcurrentDictionary<string, SortedDictionary<int, Packet>> tempBuffer;
             while (true)
             {
                 processSendEvent.WaitOne();
                 logMsg = "In ProcessSendBuffer()";
                 logger.Log(logMsg);
 
-                Hashtable tempBuffer;
                 try
                 {
                     lock (clientBufferLock)
                     {
-                        tempBuffer = new Hashtable(clientBuffers);
+                        tempBuffer = new ConcurrentDictionary<string, SortedDictionary<int, Packet>>(clientBuffers);
                     }
 
-                    foreach (DictionaryEntry dict in tempBuffer)
+                    foreach (KeyValuePair<string, SortedDictionary<int, Packet>> dict in tempBuffer)
                     {
                         SortedDictionary<int, Packet> tempDict;
                         lock (clientBufferLock)
                         {
-                            tempDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)dict.Value);
+                            tempDict = new SortedDictionary<int, Packet>(dict.Value);
                         }
 
                         foreach (KeyValuePair<int, Packet> entry in tempDict)
