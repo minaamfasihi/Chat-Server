@@ -41,16 +41,19 @@ namespace TestUdpServer
         private static int numOfPktsSent = 0;
         private static int prevNumOfPktsSent = 0;
         private static Queue<Packet> buffer = new Queue<Packet>();
+        private static Queue<byte[]> tempReceiveBuffer = new Queue<byte[]>();
         private static Hashtable clientBuffers = new Hashtable();
         private static Hashtable clientBuffersForBroadcast = new Hashtable();
         private static object clientBufferLock = new object();
         private static object clientBufferBroadcastLock = new object();
+        private static object tempReceiveBufferLock = new object();
         private static int windowSize = 4;
         private static System.Timers.Timer aTimer;
         private const int LBport = 9000;
         private static AutoResetEvent processSendEvent = new AutoResetEvent(false);
         private static AutoResetEvent processBroadcastEvent = new AutoResetEvent(false);
         private static AutoResetEvent sendACKEvent = new AutoResetEvent(false);
+        private static AutoResetEvent receiveDataEvent = new AutoResetEvent(false);
         private static LogWriter logger = Logger.Instance;
         private static int serverPort;
         private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\Server-logs-";
@@ -267,163 +270,182 @@ namespace TestUdpServer
             {
                 string logMsg = DateTime.Now + ":\t In ReceiveData()";
                 logger.Log(logMsg);
-
                 numOfPktsReceived++;
                 // Initialise a packet object to store the received data
-                Packet receivedData = new Packet(this.dataStream);
-
-                // Initialise a packet object to store the data to be sent
-                Packet sendData = new Packet();
-
+                tempReceiveBuffer.Enqueue(this.dataStream);
                 // Initialise the IPEndPoint for the clients
                 IPEndPoint clients = new IPEndPoint(IPAddress.Any, 0);
-
                 // Initialise the EndPoint for the clients
                 EndPoint epSender = (EndPoint)clients;
-
                 // Receive all data
                 serverSocket.EndReceiveFrom(asyncResult, ref epSender);
-
-                // Start populating the packet to be sent
-                sendData.ChatDataIdentifier = receivedData.ChatDataIdentifier;
-                sendData.SenderName = receivedData.SenderName;
-                sendData.RecipientName = receivedData.RecipientName;
-                rawNumOfPktsReceived++;
-
-                switch (receivedData.ChatDataIdentifier)
-                {
-                    case DataIdentifier.Message:
-                    case DataIdentifier.Broadcast:
-                        if (receivedData.ChatMessage == "ACK")
-                        {
-                            PartialCleanUpSendBuffer(receivedData);
-                        }
-                        else
-                        {
-                            string senderName = receivedData.SenderName.ToLower();
-                            sendData.ChatMessage = receivedData.ChatMessage;
-
-                            if (clientBuffers.ContainsKey(receivedData.SenderName))
-                            {
-                                SortedDictionary<int, Packet> sortedDict;
-                                lock (clientBufferLock)
-                                {
-                                    sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]);
-                                }
-                                Console.WriteLine("Sender: {0}", receivedData.SenderName);
-                                Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
-                                Console.WriteLine("Message: {0}", receivedData.ChatMessage);
-                                if (sortedDict.Count != 0)
-                                {
-                                    int startOffset = sortedDict.Keys.First();
-                                    // Check if packet belongs in current window
-
-                                    if (receivedData.SequenceNumber >= startOffset && receivedData.SequenceNumber <= startOffset + windowSize)
-                                    {
-                                        if (!sortedDict.ContainsKey(receivedData.SequenceNumber))
-                                        {
-                                            lock (clientBufferLock)
-                                            {
-                                                ((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]).Add(receivedData.SequenceNumber, receivedData);
-                                                SendACKToClient(receivedData.SenderName);
-                                                processSendEvent.Set();
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    lock (clientBufferLock)
-                                    {
-                                        ((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]).Add(receivedData.SequenceNumber, receivedData);
-                                    }
-                                    SendACKToClient(receivedData.SenderName);
-                                    processSendEvent.Set();
-                                }
-                            }
-                            else if (clientBuffers.ContainsKey(receivedData.RecipientName) && receivedData.ChatDataIdentifier == DataIdentifier.Broadcast)
-                            {
-                                if (clientBuffersForBroadcast.ContainsKey(receivedData.RecipientName))
-                                {
-                                    lock (clientBufferBroadcastLock)
-                                    {
-                                        SortedDictionary<int, Packet> recipientDict = (SortedDictionary<int, Packet>)clientBuffersForBroadcast[receivedData.RecipientName];
-                                        if (!recipientDict.ContainsKey(receivedData.SequenceNumber))
-                                        {
-                                            ((SortedDictionary<int, Packet>)clientBuffersForBroadcast[receivedData.RecipientName]).Add(receivedData.SequenceNumber, receivedData);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    SortedDictionary<int, Packet> broadcastMsgs = new SortedDictionary<int, Packet>();
-                                    broadcastMsgs.Add(receivedData.SequenceNumber, receivedData);
-                                    lock (clientBufferBroadcastLock)
-                                    {
-                                        clientBuffersForBroadcast.Add(receivedData.RecipientName, broadcastMsgs);
-                                    }
-                                }
-                                processBroadcastEvent.Set();
-                                SendACKToServerForBroadcast(receivedData);
-                            }
-                            sendACKEvent.Set();
-                        }
-                        break;
-
-                    case DataIdentifier.LogIn:
-                        // Populate client object
-                        Client client = new Client();
-                        client.endPoint = epSender;
-                        client.name = receivedData.SenderName;
-
-                        if (!clientBuffers.ContainsKey(client.name))
-                        {
-                            SortedDictionary<int, Packet> bufferMessages = new SortedDictionary<int, Packet>();
-                            lock (clientBufferLock)
-                            {
-                                clientBuffers.Add(client.name, bufferMessages);
-                            }
-                        }
-
-                        // Add client to list if not present already
-                        if (!clientsList.ContainsKey(client.name.ToLower()))
-                        {
-                            clientsList.Add(client.name.ToLower(), client);
-                        }
-
-                        SendACKToClient(receivedData.SenderName);
-                        sendData.ChatMessage = string.Format("-- {0} is online --", receivedData.SenderName);
-                        break;
-
-                    case DataIdentifier.LogOut:
-                        foreach (DictionaryEntry dict in clientsList)
-                        {
-                            if (clientsList.ContainsKey(receivedData.SenderName))
-                            {
-                                clientsList.Remove(receivedData.SenderName);
-                                break;
-                            }
-                        }
-
-                        if (clientsList.ContainsKey(receivedData.SenderName))
-                        {
-                            Console.WriteLine(receivedData.SenderName + " has not been removed");
-                        }
-                        else
-                        {
-                            Console.WriteLine(receivedData.SenderName + " has been removed");
-                        }
-                        sendData.ChatMessage = string.Format("-- {0} has gone offline --", receivedData.SenderName);
-                        break;
-                }
-                allDone.Set();
-                logMsg = DateTime.Now + ":\t Exiting ReceiveData()";
-                logger.Log(logMsg);
+                receiveDataEvent.Set();
             }
             catch (Exception e)
             {
                 string logMsg = DateTime.Now + ":\t" + e.ToString();
                 logger.Log(logMsg);
+            }
+        }
+
+        private void ProcessReceiveData()
+        {
+            while (true)
+            {
+                receiveDataEvent.WaitOne();
+
+                string logMsg = "";
+                try
+                {
+                    if (tempReceiveBuffer.Count != 0)
+                    {
+                        Packet receivedData = null;
+                        lock (tempReceiveBufferLock)
+                        {
+                            receivedData = new Packet(tempReceiveBuffer.Dequeue());
+                        }
+                        Packet sendData = new Packet();
+                        // Start populating the packet to be sent
+                        sendData.ChatDataIdentifier = receivedData.ChatDataIdentifier;
+                        sendData.SenderName = receivedData.SenderName;
+                        sendData.RecipientName = receivedData.RecipientName;
+                        rawNumOfPktsReceived++;
+
+                        switch (receivedData.ChatDataIdentifier)
+                        {
+                            case DataIdentifier.Message:
+                            case DataIdentifier.Broadcast:
+                                if (receivedData.ChatMessage == "ACK")
+                                {
+                                    PartialCleanUpSendBuffer(receivedData);
+                                }
+                                else
+                                {
+                                    string senderName = receivedData.SenderName.ToLower();
+                                    sendData.ChatMessage = receivedData.ChatMessage;
+
+                                    if (clientBuffers.ContainsKey(receivedData.SenderName))
+                                    {
+                                        SortedDictionary<int, Packet> sortedDict;
+                                        lock (clientBufferLock)
+                                        {
+                                            sortedDict = new SortedDictionary<int, Packet>((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]);
+                                        }
+                                        Console.WriteLine("Sender: {0}", receivedData.SenderName);
+                                        Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
+                                        Console.WriteLine("Message: {0}", receivedData.ChatMessage);
+                                        if (sortedDict.Count != 0)
+                                        {
+                                            int startOffset = sortedDict.Keys.First();
+                                            // Check if packet belongs in current window
+
+                                            if (receivedData.SequenceNumber >= startOffset && receivedData.SequenceNumber <= startOffset + windowSize)
+                                            {
+                                                if (!sortedDict.ContainsKey(receivedData.SequenceNumber))
+                                                {
+                                                    lock (clientBufferLock)
+                                                    {
+                                                        ((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]).Add(receivedData.SequenceNumber, receivedData);
+                                                        SendACKToClient(receivedData.SenderName);
+                                                        processSendEvent.Set();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            lock (clientBufferLock)
+                                            {
+                                                ((SortedDictionary<int, Packet>)clientBuffers[receivedData.SenderName]).Add(receivedData.SequenceNumber, receivedData);
+                                            }
+                                            SendACKToClient(receivedData.SenderName);
+                                            processSendEvent.Set();
+                                        }
+                                    }
+                                    else if (clientBuffers.ContainsKey(receivedData.RecipientName) && receivedData.ChatDataIdentifier == DataIdentifier.Broadcast)
+                                    {
+                                        if (clientBuffersForBroadcast.ContainsKey(receivedData.RecipientName))
+                                        {
+                                            lock (clientBufferBroadcastLock)
+                                            {
+                                                SortedDictionary<int, Packet> recipientDict = (SortedDictionary<int, Packet>)clientBuffersForBroadcast[receivedData.RecipientName];
+                                                if (!recipientDict.ContainsKey(receivedData.SequenceNumber))
+                                                {
+                                                    ((SortedDictionary<int, Packet>)clientBuffersForBroadcast[receivedData.RecipientName]).Add(receivedData.SequenceNumber, receivedData);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SortedDictionary<int, Packet> broadcastMsgs = new SortedDictionary<int, Packet>();
+                                            broadcastMsgs.Add(receivedData.SequenceNumber, receivedData);
+                                            lock (clientBufferBroadcastLock)
+                                            {
+                                                clientBuffersForBroadcast.Add(receivedData.RecipientName, broadcastMsgs);
+                                            }
+                                        }
+                                        processBroadcastEvent.Set();
+                                        SendACKToServerForBroadcast(receivedData);
+                                    }
+                                    sendACKEvent.Set();
+                                }
+                                break;
+
+                            case DataIdentifier.LogIn:
+                                // Populate client object
+                                Client client = new Client();
+                                client.endPoint = epSender;
+                                client.name = receivedData.SenderName;
+
+                                if (!clientBuffers.ContainsKey(client.name))
+                                {
+                                    SortedDictionary<int, Packet> bufferMessages = new SortedDictionary<int, Packet>();
+                                    lock (clientBufferLock)
+                                    {
+                                        clientBuffers.Add(client.name, bufferMessages);
+                                    }
+                                }
+
+                                // Add client to list if not present already
+                                if (!clientsList.ContainsKey(client.name.ToLower()))
+                                {
+                                    clientsList.Add(client.name.ToLower(), client);
+                                }
+
+                                SendACKToClient(receivedData.SenderName);
+                                sendData.ChatMessage = string.Format("-- {0} is online --", receivedData.SenderName);
+                                break;
+
+                            case DataIdentifier.LogOut:
+                                foreach (DictionaryEntry dict in clientsList)
+                                {
+                                    if (clientsList.ContainsKey(receivedData.SenderName))
+                                    {
+                                        clientsList.Remove(receivedData.SenderName);
+                                        break;
+                                    }
+                                }
+
+                                if (clientsList.ContainsKey(receivedData.SenderName))
+                                {
+                                    Console.WriteLine(receivedData.SenderName + " has not been removed");
+                                }
+                                else
+                                {
+                                    Console.WriteLine(receivedData.SenderName + " has been removed");
+                                }
+                                sendData.ChatMessage = string.Format("-- {0} has gone offline --", receivedData.SenderName);
+                                break;
+                        }
+                    }
+                    allDone.Set();
+                    logMsg = DateTime.Now + ":\t Exiting ReceiveData()";
+                    logger.Log(logMsg);
+                }
+                catch (Exception e)
+                {
+
+                }
             }
         }
 
@@ -738,17 +760,20 @@ namespace TestUdpServer
             Thread t2 = new Thread(() => server.ProcessSendBuffer());
             t2.Start();
             Thread t3 = new Thread(server.messagesRate);
-            t3.Start();
+            //t3.Start();
             Thread t4 = new Thread(server.ProcessBroadcastBuffer);
             t4.Start();
             //Thread t5 = new Thread(server.SendACKToClient);
             //t5.Start();
+            Thread t6 = new Thread(server.ProcessReceiveData);
+            t6.Start();
             server.StartListening();
             t1.Join();
             t2.Join();
             //t3.Join();
             t4.Join();
             //t5.Join();
+            t6.Join();
         }
     }
 }

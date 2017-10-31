@@ -94,32 +94,38 @@ namespace TestClientSimulator
             return null;
         }
 
-        public void SwapSendBuffer()
+        public void SwapProducerBuffer()
         {
-            lock (lockProducerBuffer)
+            if (_producerSendQueue == _sendBuffer1)
             {
-                if (_producerSendQueue == _sendBuffer1)
-                {
-                    _producerSendQueue = _sendBuffer2;
-                }
-                else
-                {
-                    _producerSendQueue = _sendBuffer1;
-                }
+                _producerSendQueue = _sendBuffer2;
+            }
+            else
+            {
+                _producerSendQueue = _sendBuffer1;
             }
         }
 
-        public void SwapReceiveBuffer()
+        public void SwapConsumerBuffer()
+        {
+            if (_consumerSendQueue == _sendBuffer1)
+            {
+                _consumerSendQueue = _sendBuffer2;
+            }
+            else
+            {
+                _consumerSendQueue = _sendBuffer1;
+            }
+        }
+
+        public void SwapSendBuffers()
         {
             lock (lockConsumerBuffer)
             {
-                if (_consumerSendQueue == _sendBuffer1)
+                lock (lockProducerBuffer)
                 {
-                    _consumerSendQueue = _sendBuffer2;
-                }
-                else
-                {
-                    _consumerSendQueue = _sendBuffer1;
+                    SwapProducerBuffer();
+                    SwapConsumerBuffer();
                 }
             }
         }

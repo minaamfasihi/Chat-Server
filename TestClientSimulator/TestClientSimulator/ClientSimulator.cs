@@ -439,10 +439,14 @@ namespace TestClientSimulator
                                     clientSocket.BeginSendTo(dataStream, 0, dataStream.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), clientSocket);
                                 }
                             }
+                            if (keyVal.Value.ConsumerSendQueue.Count == 0)
+                            {
+                                keyVal.Value.SwapSendBuffers();
+                            }
                         }
                         else
                         {
-                            keyVal.Value.SwapSendBuffer();
+                            keyVal.Value.SwapSendBuffers();
                         }
                     }
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
@@ -640,7 +644,7 @@ namespace TestClientSimulator
                             }
                             if (q.Count == 0)
                             {
-                                dict.Value.SwapSendBuffer();
+                                dict.Value.SwapSendBuffers();
                             }
                         }
                     }
