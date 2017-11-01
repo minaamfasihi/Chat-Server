@@ -1,14 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Net;
 using System.Net.Sockets;
+using System.Net;
+using System.Text;
+using PacketAPI;
 using System.Threading.Tasks;
 
 namespace ClientAPI
 {
-    class Client
+    public class Client
     {
+        string _name;
+        string _friendName;
+
         Queue<byte[]> _producerSendQueue;
         Queue<byte[]> _consumerSendQueue;
         Queue<byte[]> _sendBuffer1;
@@ -17,16 +21,20 @@ namespace ClientAPI
         Queue<byte[]> _receiveQueue;
 
         Socket _socket;
+        byte[] dataStream = new byte[1024];
 
         object lockProducerBuffer = new object();
         object lockConsumerBuffer = new object();
 
         int _lastReceiveACK;
+        int _oldestReceiveACK;
         int _lastSentACK;
+        int _oldestSentACK;
         int _portNum;
 
-        public Client(Socket s)
+        public Client(Socket s, string name)
         {
+            _name = name;
             _sendBuffer1 = new Queue<byte[]>();
             _sendBuffer2 = new Queue<byte[]>();
             _producerSendQueue = _sendBuffer1;
@@ -77,9 +85,31 @@ namespace ClientAPI
             get { return _receiveQueue; }
         }
 
+        public byte[] DataStream
+        {
+            get { return dataStream; }
+        }
+
+        public void ResetDataStream()
+        {
+            dataStream = new byte[1024];
+        }
+
         public byte[] PeekAtSendQueue()
         {
             return null;
+        }
+
+        public string Name
+        {
+            get { return _name; }
+            set { _name = value; }
+        }
+
+        public string FriendName
+        {
+            get { return _friendName; }
+            set { _friendName = value; }
         }
 
         public byte[] RemoveFromSendQueue()
@@ -170,7 +200,7 @@ namespace ClientAPI
             {
                 byte[] byteData = pkt.GetDataStream();
                 InsertInSendQueue(byteData);
-                _socket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer, new AsyncCallback(SendCallback), _socket);
+                _socket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer, new AsyncCallback(SendCallback), null);
             }
             catch (Exception e)
             {
@@ -178,12 +208,11 @@ namespace ClientAPI
             }
         }
 
-        public static void SendCallback(IAsyncResult ar)
+        public void SendCallback(IAsyncResult ar)
         {
             try
             {
-                Socket client = (Socket)ar.AsyncState;
-                client.EndSendTo(ar);
+                _socket.EndSendTo(ar);
             }
             catch (Exception e)
             {
@@ -195,9 +224,8 @@ namespace ClientAPI
         {
             try
             {
-                StateObject obj = new StateObject();
-                obj.dataStream = pkt.GetDataStream();
-                _socket.BeginReceiveFrom(obj.dataStream, 0, obj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveCallback), obj);
+                dataStream = pkt.GetDataStream();
+                _socket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveCallback), this);
             }
             catch (Exception e)
             {
@@ -209,10 +237,10 @@ namespace ClientAPI
         {
             try
             {
-                StateObject clientObj = (StateObject)ar.AsyncState;
+                Client client = (Client)ar.AsyncState;
                 _socket.EndReceive(ar);
                 //_readSendBuffer.Enqueue(clientObj.dataStream);
-                Packet p = new Packet(clientObj.dataStream);
+                Packet p = new Packet(client.dataStream);
                 Console.WriteLine("Sender: {0}", p.SenderName);
                 Console.WriteLine("Recipient: {0}", p.RecipientName);
                 Console.WriteLine("Chat Message: {0}", p.ChatMessage);
