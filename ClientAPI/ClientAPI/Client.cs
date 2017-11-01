@@ -18,7 +18,7 @@ namespace ClientAPI
         Queue<byte[]> _sendBuffer1;
         Queue<byte[]> _sendBuffer2;
 
-        Queue<byte[]> _receiveQueue;
+        SortedDictionary<int, byte[]> _receiveBuffer = new SortedDictionary<int, byte[]>();
 
         Socket _socket;
         byte[] dataStream = new byte[1024];
@@ -31,6 +31,10 @@ namespace ClientAPI
         int _lastSentACK;
         int _oldestSentACK;
         int _portNum;
+
+        public Client ()
+        {
+        }
 
         public Client(Socket s, string name)
         {
@@ -80,9 +84,17 @@ namespace ClientAPI
             get { return _consumerSendQueue; }
         }
 
-        public Queue<byte[]> ReceiveQueue
+        public SortedDictionary<int, byte[]> ReceiveBuffer
         {
-            get { return _receiveQueue; }
+            get { return _receiveBuffer; }
+        }
+
+        public void InsertInReceiveBuffer(byte[] byteData, int sequenceNumber)
+        {
+            if (!_receiveBuffer.ContainsKey(sequenceNumber))
+            {
+                _receiveBuffer.Add(sequenceNumber, byteData);
+            }
         }
 
         public byte[] DataStream
@@ -166,32 +178,6 @@ namespace ClientAPI
             {
                 _producerSendQueue.Enqueue(byteData);
             }
-        }
-
-        public void InsertInReceiveQueue(byte[] byteData)
-        {
-            //lock (lockReceiveBuffer)
-            //{
-            //    _receiveQueue.Enqueue(byteData);
-            //}
-        }
-
-        public byte[] PeekAtReceiveQueue()
-        {
-            //if (_receiveQueue.Count != 0)
-            //{
-            //    return _receiveQueue.Peek();
-            //}
-            return null;
-        }
-
-        public byte[] RemoveFromReceiveQueue()
-        {
-            //if (_receiveQueue.Count != 0)
-            //{
-            //    return _receiveQueue.Dequeue();
-            //}
-            return null;
         }
 
         public void SendMessage(Packet pkt, EndPoint epServer)

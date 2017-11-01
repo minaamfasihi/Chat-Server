@@ -30,7 +30,9 @@ namespace TestUdpClient
 
         private static int sequenceNumber = 0;
         private static int expectedSequenceNumber;
-        
+
+        Client client = new Client();
+
         private static int port;
         private static int LBport = 9000;
         private static int latestSendPktACKED = 0;
@@ -44,6 +46,7 @@ namespace TestUdpClient
         private static int prevNumOfPktsProduced = 0;
 
         private static Queue<Packet> sendMessageBuffer = new Queue<Packet>();
+        private static Queue<byte[]> tempReceiveMessageBuffer = new Queue<byte[]>();
         private static SortedDictionary<int, Packet> receiveMessageBuffer = new SortedDictionary<int, Packet>();
 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
@@ -53,6 +56,7 @@ namespace TestUdpClient
         private static AutoResetEvent cleanerSendQueue = new AutoResetEvent(false);
         private static AutoResetEvent cleanerReceiveQueue = new AutoResetEvent(false);
         private static AutoResetEvent partialCleanerSendQueue = new AutoResetEvent(false);
+        private static AutoResetEvent processTempReceiveQueue = new AutoResetEvent(false);
 
         private static LogWriter logger = Logger.Instance;
 
@@ -127,7 +131,7 @@ namespace TestUdpClient
             {
                 logMsg = DateTime.Now + ":\t In LBRequestForServer()";
                 logger.Log(logMsg);
-                string friendName = "fasihi";
+                client.FriendName = "fasihi";
                 Packet sendData = new Packet(friendName);
                 sendData.SenderName = "minaam";
                 sendData.ChatMessage = "request";
@@ -204,27 +208,27 @@ namespace TestUdpClient
                 logMsg = DateTime.Now + ":\t In ConnectToServer()";
                 logger.Log(logMsg);
                 Console.WriteLine("Please enter your chat username");
-                name = Console.ReadLine();
+                client.Name = Console.ReadLine();
 
                 // Initialise a packet object to store the data to be sent
                 Console.WriteLine("Please enter the name of user who you want to chat with");
-                friendName = Console.ReadLine();
+                client.FriendName = Console.ReadLine();
                 Packet sendData = new Packet(friendName);
                 sendData.SenderName = name;
                 sendData.ChatMessage = null;
                 sendData.ChatDataIdentifier = DataIdentifier.LogIn;
                 // Initialise socket
-                clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                clientSocket.Bind(new IPEndPoint(IPAddress.Parse(clientIPAddress), port));
+                client.socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                client.socket.Bind(new IPEndPoint(IPAddress.Parse(clientIPAddress), port));
                 // Get packet as byte array
                 byte[] data = sendData.GetDataStream();
 
                 expectedSequenceNumber = windowSize;
                 // Send data to server
-                clientSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(this.SendData), null);
+                client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), null);
 
                 // Begin listening for broadcasts
-                clientSocket.BeginReceiveFrom(this.dataStream, 0, this.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(this.ReceiveData), null);
+                client.socket.BeginReceiveFrom(client.DataStream, 0, client.DataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(this.ReceiveData), null);
                 logMsg = DateTime.Now + ":\t Client is trying to connect to the server";
                 logger.Log(logMsg);
             }
@@ -264,13 +268,10 @@ namespace TestUdpClient
                     try
                     {
                         byte[] byteData = sendData.GetDataStream();
-
-                        lock (syncSendBuffer)
-                        {
-                            sendMessageBuffer.Enqueue(sendData);
-                            processSendQueue.Set();
-                        }
+                        client.InsertInSendQueue(byteData);
+                        processSendQueue.Set();
                     }
+
                     catch (Exception e)
                     {
                         logMsg = DateTime.Now + ":\t " + e.ToString();
@@ -299,23 +300,24 @@ namespace TestUdpClient
 
                 try
                 {
-                    Queue<Packet> tempSendQueue = null;
+                    Queue<byte[]> tempSendQueue = null;
 
-                    lock (syncSendBuffer)
+                    if (client.ConsumerSendQueue.Count != 0)
                     {
-                        if (sendMessageBuffer.Count != 0)
-                        {
-                            tempSendQueue = new Queue<Packet>(sendMessageBuffer);
-                        }
+                        tempSendQueue = client.ConsumerSendQueue;
                     }
 
-                    if (tempSendQueue != null)
+                    if (tempSendQueue.Count != 0)
                     {
                         foreach (var q in tempSendQueue)
                         {
-                            byte[] byteData = q.GetDataStream();
-                            clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), clientSocket);
+                            client.socket.BeginSendTo(q, 0, q.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
                         }
+                    }
+
+                    if (tempSendQueue.Count == 0)
+                    {
+                        client.SwapSendBuffers();
                     }
 
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
@@ -369,7 +371,7 @@ namespace TestUdpClient
             {
                 logMsg = DateTime.Now + ":\t In SendData()";
                 logger.Log(logMsg);
-                clientSocket.EndSendTo(ar);
+                client.socket.EndSendTo(ar);
                 allDone.Set();
             }
             catch (Exception e)
@@ -388,8 +390,7 @@ namespace TestUdpClient
             {
                 logMsg = DateTime.Now + ":\t In ReceiveData()";
                 logger.Log(logMsg);
-                clientSocket.EndReceive(ar);
-
+                client.socket.EndReceive(ar);
                 Packet receivedData = new Packet(dataStream);
 
                 if (receivedData.ChatMessage == "ACK")
@@ -419,10 +420,10 @@ namespace TestUdpClient
                 }
 
                 // Reset data stream
-                dataStream = new byte[1024];
+                client.ResetDataStream();
 
                 // Continue listening for more messages
-                clientSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), null);
+                client.socket.BeginReceiveFrom(client.DataStream, 0, client.DataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), null);
             }
             catch (ObjectDisposedException)
             { }
@@ -434,6 +435,14 @@ namespace TestUdpClient
             }
             logMsg = DateTime.Now + ":\t Exiting ReceiveData()";
             logger.Log(logMsg);
+        }
+
+        private void ProcessTempReceiveQueue ()
+        {
+            while (true)
+            {
+                processTempReceiveQueue.WaitOne();
+            }
         }
 
         private void SendACKToServer()
