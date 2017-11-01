@@ -9,11 +9,12 @@ using System.Collections;
 using System.Timers;
 using LogWriterAPI;
 using PacketAPI;
+using ClientAPI;
 using System.IO;
 
 namespace TestUdpClient
 {
-    class Client
+    class ChatClient
     {
         private static Socket clientSocket;
         private static Socket LBClientSocket;
@@ -66,7 +67,7 @@ namespace TestUdpClient
         private static string LBIPAddress;
         private static string clientIPAddress;
 
-        public Client()
+        public ChatClient()
         {
             sequenceNumber = 0;
         }
@@ -662,7 +663,7 @@ namespace TestUdpClient
                 LBIPAddress = args[2].ToString();
                 serverIPAddress = args[3].ToString();
                 clientIPAddress = args[4].ToString();
-                Client client = new Client();
+                ChatClient client = new ChatClient();
                 client.ConnectToLoadBalancer();
                 client.ConnectToServer();
                 Thread t1 = new Thread(() => logger.WriteToFile(fileName));

@@ -15,7 +15,7 @@ using PacketAPI;
 namespace TestUdpServer
 {
 
-    class Server
+    class ChatServer
     {
         #region Private Members
         private struct Client
@@ -65,7 +65,7 @@ namespace TestUdpServer
         #endregion
 
         #region Constructor
-        public Server(int port)
+        public ChatServer(int port)
         {
             try
             {
@@ -757,7 +757,7 @@ namespace TestUdpServer
             serverIPAddress = args[3].ToString();
             Thread t1 = new Thread(() => logger.WriteToFile(fileName));
             t1.Start();
-            Server server = new Server(serverPort);
+            ChatServer server = new ChatServer(serverPort);
             Thread t2 = new Thread(() => server.ProcessSendBuffer());
             t2.Start();
             Thread t3 = new Thread(server.messagesRate);

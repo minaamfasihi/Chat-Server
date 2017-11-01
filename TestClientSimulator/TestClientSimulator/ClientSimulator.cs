@@ -9,16 +9,11 @@ using System.Collections;
 using System.Timers;
 using LogWriterAPI;
 using PacketAPI;
+using ClientAPI;
 using System.Collections.Concurrent;
 
 namespace TestClientSimulator
 {
-    class StateObject
-    {
-        public Socket socket = null;
-        public byte[] dataStream = new byte[1024];
-    }
-
     class ClientSimulator
     {
         private static ConcurrentDictionary<string, Client> ClientObjects = new ConcurrentDictionary<string, Client>();
@@ -172,9 +167,8 @@ namespace TestClientSimulator
                 clientSocket.EndSend(ar);
                 sendDone.Set();
                 receiveDone.Reset();
-                StateObject clientObj = new StateObject();
-                clientObj.socket = clientSocket;
-                clientSocket.BeginReceive(clientObj.dataStream, 0, clientObj.dataStream.Length, 0, new AsyncCallback(LBReceiveCallback), clientObj);
+                Client client = new Client(clientSocket);
+                clientSocket.BeginReceive(client.DataStream, 0, client.DataStream.Length, 0, new AsyncCallback(LBReceiveCallback), client);
                 receiveDone.WaitOne();
             }
             catch (Exception e)
@@ -192,10 +186,9 @@ namespace TestClientSimulator
             logger.Log(logMsg);
             try
             {
-                StateObject clientObj = (StateObject)ar.AsyncState;
-                Socket client = clientObj.socket;
-                byte[] dataStream = clientObj.dataStream;
-                client.EndReceive(ar);
+                Client client = (Client)ar.AsyncState;
+                byte[] dataStream = client.DataStream;
+                client.socket.EndReceive(ar);
                 
                 Packet receivedData = new Packet(dataStream);
                 char[] delimiters = { ':' };
@@ -254,8 +247,6 @@ namespace TestClientSimulator
                 // Begin listening for messages
                 numOfPktsReceived++;
                 //sendDone.WaitOne();
-                StateObject clientObj = new StateObject();
-                clientObj.socket = s;
 
                 Packet pkt = new Packet();
                 client.ReceiveMessage(pkt, epServer);
@@ -401,8 +392,8 @@ namespace TestClientSimulator
 
             try
             {
-                StateObject clientObj = (StateObject)ar.AsyncState;
-                clientObj.socket.EndSendTo(ar);
+                Client client = (Client)ar.AsyncState;
+                client.socket.EndSendTo(ar);
                 sendDone.Set();
             }
             catch (Exception e)
@@ -469,12 +460,11 @@ namespace TestClientSimulator
             try
             {
                 // Receive all data
-                StateObject clientObj = (StateObject)ar.AsyncState;
-                Socket client = clientObj.socket;
-                client.EndReceive(ar);
+                Client client = (Client)ar.AsyncState;
+                client.socket.EndReceive(ar);
 
                 // Initialise a packet object to store the received data
-                Packet receivedData = new Packet(clientObj.dataStream);
+                Packet receivedData = new Packet(client.DataStream);
 
                 if (receivedData.ChatMessage == "ACK")
                 {
@@ -516,12 +506,10 @@ namespace TestClientSimulator
                 }
 
                 // Reset data stream
-                StateObject obj = new StateObject();
-                obj.dataStream = new byte[1024];
-                obj.socket = client;
+                client.ResetDataStream();
                 receiveDone.Set();
                 // Continue listening for broadcasts
-                client.BeginReceiveFrom(obj.dataStream, 0, obj.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), obj);
+                client.socket.BeginReceiveFrom(client.DataStream, 0, client.DataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), client);
             }
 
             catch (ObjectDisposedException o)
@@ -574,9 +562,8 @@ namespace TestClientSimulator
                 
                 cleanReceiveQueue.Set();
                 byte[] data = sendData.GetDataStream();
-                StateObject obj = new StateObject();
-                obj.socket = (Socket)ClientSockets[senderName];
-                obj.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataObject), obj);
+                Client client = (Client)ClientSockets[senderName];
+                client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataObject), client);
             }
 
             logMsg = DateTime.Now + ":\t Exiting SendACKToServer()";

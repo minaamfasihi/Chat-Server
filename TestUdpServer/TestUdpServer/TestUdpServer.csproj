@@ -41,6 +41,9 @@
     <Reference Include="LogWriterAPI">
       <HintPath>..\..\LogWriterAPI\LogWriterAPI\bin\Debug\LogWriterAPI.dll</HintPath>
     </Reference>
+    <Reference Include="PacketAPI">
+      <HintPath>..\..\PacketAPI\PacketAPI\bin\Debug\PacketAPI.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -52,8 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Logger.cs" />
-    <Compile Include="Packet.cs" />
-    <Compile Include="Server.cs" />
+    <Compile Include="ChatServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
