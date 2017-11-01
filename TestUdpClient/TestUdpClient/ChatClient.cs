@@ -46,7 +46,6 @@ namespace TestUdpClient
         private static int prevNumOfPktsProduced = 0;
 
         private static Queue<Packet> sendMessageBuffer = new Queue<Packet>();
-        private static Queue<byte[]> tempReceiveMessageBuffer = new Queue<byte[]>();
         private static SortedDictionary<int, Packet> receiveMessageBuffer = new SortedDictionary<int, Packet>();
 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
@@ -56,7 +55,6 @@ namespace TestUdpClient
         private static AutoResetEvent cleanerSendQueue = new AutoResetEvent(false);
         private static AutoResetEvent cleanerReceiveQueue = new AutoResetEvent(false);
         private static AutoResetEvent partialCleanerSendQueue = new AutoResetEvent(false);
-        private static AutoResetEvent processTempReceiveQueue = new AutoResetEvent(false);
 
         private static LogWriter logger = Logger.Instance;
 
@@ -435,14 +433,6 @@ namespace TestUdpClient
             }
             logMsg = DateTime.Now + ":\t Exiting ReceiveData()";
             logger.Log(logMsg);
-        }
-
-        private void ProcessTempReceiveQueue ()
-        {
-            while (true)
-            {
-                processTempReceiveQueue.WaitOne();
-            }
         }
 
         private void SendACKToServer()
