@@ -180,6 +180,25 @@ namespace ClientAPI
             }
         }
 
+        public void CleanUpSendQueue(int lastACK)
+        {
+            if (_consumerSendQueue.Count != 0)
+            {
+                while (_consumerSendQueue.Count != 0)
+                {
+                    Packet pkt = new Packet(_consumerSendQueue.Peek());
+                    if (pkt.SequenceNumber < lastACK)
+                    {
+                        _consumerSendQueue.Dequeue();
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
         public void SendMessage(Packet pkt, EndPoint epServer)
         {
             try

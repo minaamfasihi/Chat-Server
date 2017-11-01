@@ -45,7 +45,6 @@ namespace TestUdpClient
         private static int numOfPktsProduced = 0;
         private static int prevNumOfPktsProduced = 0;
 
-        private static Queue<Packet> sendMessageBuffer = new Queue<Packet>();
         private static SortedDictionary<int, Packet> receiveMessageBuffer = new SortedDictionary<int, Packet>();
 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
@@ -471,57 +470,13 @@ namespace TestUdpClient
             logger.Log(logMsg);
         }
 
-        private void PartialCleanUpSendQueue()
+        private void CleanSendQueue()
         {
             while (true)
             {
                 partialCleanerSendQueue.WaitOne();
-                lock (syncSendBuffer)
-                {
-                    if (sendMessageBuffer.Count != 0)
-                    {
-                        while (sendMessageBuffer.Any())
-                        {
-                            if (sendMessageBuffer.Peek().SequenceNumber < latestSendPktACKED)
-                            {
-                                sendMessageBuffer.Dequeue();
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    foreach (var q in sendMessageBuffer)
-                    {
-                        Console.WriteLine("Message: {0}", q.ChatMessage);
-                    }
-
-                    oldestSendPacketSeqNum = latestSendPktACKED - 1;
-                }
-            }
-        }
-
-        private void CleanUpSendQueue()
-        {
-            while (true)
-            {
-                cleanerSendQueue.WaitOne();
-
-                string logMsg = "";
-                logMsg = DateTime.Now + ":\t In CleanUpQueue()";
-                logger.Log(logMsg);
-
-                if (getCurrentSendWindowSize() == windowSize)
-                {
-                    lock (syncSendBuffer)
-                    {
-                        sendMessageBuffer.Clear();
-                    }
-                }
-
-                logMsg = DateTime.Now + ":\t Exiting CleanUpQueue()";
-                logger.Log(logMsg);
+                client.CleanUpSendQueue(latestSendPacketSeqNum);
+                oldestSendPacketSeqNum = latestSendPktACKED - 1;
             }
         }
 
@@ -584,20 +539,20 @@ namespace TestUdpClient
             }
         }
 
-        private static void CheckSendBuffer(object o, ElapsedEventArgs e)
-        {
-            if (sendMessageBuffer.Count != 0)
-            {
-                processSendQueue.Set();
-            }
-        }
+        //private static void CheckSendBuffer(object o, ElapsedEventArgs e)
+        //{
+        //    if (sendMessageBuffer.Count != 0)
+        //    {
+        //        processSendQueue.Set();
+        //    }
+        //}
 
         private void ResendMechanism()
         {
-            sendTimer = new System.Timers.Timer(1000);
-            sendTimer.Elapsed += CheckSendBuffer;
-            sendTimer.AutoReset = true;
-            sendTimer.Enabled = true;
+            //sendTimer = new System.Timers.Timer(1000);
+            //sendTimer.Elapsed += CheckSendBuffer;
+            //sendTimer.AutoReset = true;
+            //sendTimer.Enabled = true;
         }
 
         private int getCurrentSendWindowSize()
@@ -673,7 +628,7 @@ namespace TestUdpClient
                 t3.Start();
                 Thread t4 = new Thread(client.ResendMechanism);
                 t4.Start();
-                Thread t5 = new Thread(client.PartialCleanUpSendQueue);
+                Thread t5 = new Thread(client.CleanSendQueue);
                 t5.Start();
                 Thread t6 = new Thread(client.MessageProductionRate);
                 t6.Start();
