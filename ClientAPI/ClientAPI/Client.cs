@@ -199,6 +199,15 @@ namespace ClientAPI
             }
         }
 
+        public bool ReceiveBufferHasKey(int key)
+        {
+            if (_receiveBuffer.ContainsKey(key))
+            {
+                return true;
+            }
+            return false;
+        }
+
         public void SendMessage(Packet pkt, EndPoint epServer)
         {
             try

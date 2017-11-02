@@ -398,16 +398,17 @@ namespace TestUdpClient
                 }
                 else
                 {
-                    if (!receiveMessageBuffer.ContainsKey(receivedData.SequenceNumber))
+                    if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
                     {
-                        receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
+                        client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
+                        //receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
                         SendACKToServer();
                         processReceiveQueue.Set();
                     }
 
                     if (currentReceiveWindowHasSpace() && liesInRangeForReceive(receivedData.SequenceNumber))
                     {
-                        if (!receiveMessageBuffer.ContainsKey(receivedData.SequenceNumber))
+                        if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
                         {
                             receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
                             SendACKToServer();
@@ -463,7 +464,7 @@ namespace TestUdpClient
                 latestReceivePktACKED = lastValidSeqNum - 1;
                 oldestReceivePacketSeqNum = sortedDict.Keys.First();
                 byte[] data = sendData.GetDataStream();
-                clientSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), clientSocket);
+                client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client);
             }
 
             logMsg = DateTime.Now + ":\t Exiting SendACKToServer()";
