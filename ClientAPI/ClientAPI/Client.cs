@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 using PacketAPI;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace ClientAPI
 {
@@ -13,14 +14,14 @@ namespace ClientAPI
         string _name;
         string _friendName;
 
-        Queue<byte[]> _producerSendQueue;
-        Queue<byte[]> _consumerSendQueue;
-        Queue<byte[]> _sendBuffer1;
-        Queue<byte[]> _sendBuffer2;
-
+        SortedDictionary<int, byte[]> _producerSendBuffer;
+        SortedDictionary<int, byte[]> _consumerSendBuffer;
+        SortedDictionary<int, byte[]> _sendBuffer1;
+        SortedDictionary<int, byte[]> _sendBuffer2;
         SortedDictionary<int, byte[]> _receiveBuffer = new SortedDictionary<int, byte[]>();
 
         Socket _socket;
+        EndPoint epSender;
         byte[] dataStream = new byte[1024];
 
         object lockProducerBuffer = new object();
@@ -39,10 +40,10 @@ namespace ClientAPI
         public Client(Socket s, string name)
         {
             _name = name;
-            _sendBuffer1 = new Queue<byte[]>();
-            _sendBuffer2 = new Queue<byte[]>();
-            _producerSendQueue = _sendBuffer1;
-            _consumerSendQueue = _sendBuffer2;
+            _sendBuffer1 = new SortedDictionary<int, byte[]>();
+            _sendBuffer2 = new SortedDictionary<int, byte[]>();
+            _producerSendBuffer = _sendBuffer1;
+            _consumerSendBuffer = _sendBuffer2;
 
             _lastReceiveACK = 0;
             _lastSentACK = 0;
@@ -74,19 +75,25 @@ namespace ClientAPI
             set { _portNum = value; }
         }
 
-        public Queue<byte[]> ProducerSendQueue
+        public SortedDictionary<int, byte[]> ProducerSendBuffer
         {
-            get { return _producerSendQueue; }
+            get { return _producerSendBuffer; }
         }
 
-        public Queue<byte[]> ConsumerSendQueue
+        public SortedDictionary<int, byte[]> ConsumerSendBuffer
         {
-            get { return _consumerSendQueue; }
+            get { return _consumerSendBuffer; }
         }
 
         public SortedDictionary<int, byte[]> ReceiveBuffer
         {
             get { return _receiveBuffer; }
+        }
+
+        public EndPoint EpSender
+        {
+            get { return epSender; }
+            set { epSender = value; }
         }
 
         public void InsertInReceiveBuffer(byte[] byteData, int sequenceNumber)
@@ -126,37 +133,38 @@ namespace ClientAPI
 
         public byte[] RemoveFromSendQueue()
         {
-            lock (lockProducerBuffer)
-            {
-                if (_producerSendQueue.Count != 0)
-                {
-                    _producerSendQueue.Dequeue();
-                }
-            }
+            //lock (lockProducerBuffer)
+            //{
+            //    if (_producerSendBuffer.Count != 0)
+            //    {
+            //        byte[] byteData = 
+            //        _producerSendQueue.Dequeue();
+            //    }
+            //}
             return null;
         }
 
         public void SwapProducerBuffer()
         {
-            if (_producerSendQueue == _sendBuffer1)
+            if (_producerSendBuffer == _sendBuffer1)
             {
-                _producerSendQueue = _sendBuffer2;
+                _producerSendBuffer = _sendBuffer2;
             }
             else
             {
-                _producerSendQueue = _sendBuffer1;
+                _producerSendBuffer = _sendBuffer1;
             }
         }
 
         public void SwapConsumerBuffer()
         {
-            if (_consumerSendQueue == _sendBuffer1)
+            if (_consumerSendBuffer == _sendBuffer1)
             {
-                _consumerSendQueue = _sendBuffer2;
+                _consumerSendBuffer = _sendBuffer2;
             }
             else
             {
-                _consumerSendQueue = _sendBuffer1;
+                _consumerSendBuffer = _sendBuffer1;
             }
         }
 
@@ -172,29 +180,24 @@ namespace ClientAPI
             }
         }
 
-        public void InsertInSendQueue(byte[] byteData)
+        public void InsertInSendBuffer(int sequenceNumber, byte[] byteData)
         {
             lock (lockProducerBuffer)
             {
-                _producerSendQueue.Enqueue(byteData);
+                if (!_producerSendBuffer.ContainsKey(sequenceNumber))
+                {
+                    _producerSendBuffer.Add(sequenceNumber, byteData);
+                }
             }
         }
 
         public void CleanUpSendQueue(int lastACK)
         {
-            if (_consumerSendQueue.Count != 0)
+            if (_consumerSendBuffer.Count != 0)
             {
-                while (_consumerSendQueue.Count != 0)
+                foreach (int i = _consumerSendBuffer.Keys.)
                 {
-                    Packet pkt = new Packet(_consumerSendQueue.Peek());
-                    if (pkt.SequenceNumber < lastACK)
-                    {
-                        _consumerSendQueue.Dequeue();
-                    }
-                    else
-                    {
-                        break;
-                    }
+
                 }
             }
         }
@@ -213,7 +216,7 @@ namespace ClientAPI
             try
             {
                 byte[] byteData = pkt.GetDataStream();
-                InsertInSendQueue(byteData);
+                InsertInSendBuffer(pkt.SequenceNumber, byteData);
                 _socket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epServer, new AsyncCallback(SendCallback), null);
             }
             catch (Exception e)

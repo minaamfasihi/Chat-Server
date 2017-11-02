@@ -136,9 +136,9 @@ namespace TestClientSimulator
 
             try
             {
-                string friendName = "fasihi";
+                string friendName = "";
                 Packet sendData = new Packet(friendName);
-                sendData.SenderName = "minaam";
+                sendData.SenderName = "Simulator";
                 sendData.ChatMessage = "request";
                 byte[] byteData = sendData.GetDataStream();
 
@@ -167,7 +167,7 @@ namespace TestClientSimulator
                 clientSocket.EndSend(ar);
                 sendDone.Set();
                 receiveDone.Reset();
-                Client client = new Client(clientSocket);
+                Client client = new Client(clientSocket, "Simulator");
                 clientSocket.BeginReceive(client.DataStream, 0, client.DataStream.Length, 0, new AsyncCallback(LBReceiveCallback), client);
                 receiveDone.WaitOne();
             }
@@ -234,7 +234,7 @@ namespace TestClientSimulator
 
                 ClientSockets.Add(name, s);
 
-                Client client = new Client(s);
+                Client client = new Client(s, name);
 
                 ClientObjects.TryAdd(name, client);
                 incrementPortNumber.Set();
@@ -323,7 +323,7 @@ namespace TestClientSimulator
                     }
                     if (ClientObjects.ContainsKey(sendData.SenderName))
                     {
-                        ClientObjects[sendData.SenderName].InsertInSendQueue(sendData.GetDataStream());
+                        ClientObjects[sendData.SenderName].InsertInSendBuffer(sendData.SequenceNumber, sendData.GetDataStream());
                     }
                     processSendQueue.Set();
                 }
@@ -420,18 +420,18 @@ namespace TestClientSimulator
                 {
                     foreach (KeyValuePair<string, Client> keyVal in ClientObjects)
                     {
-                        if (keyVal.Value.ConsumerSendQueue.Count != 0)
+                        if (keyVal.Value.ConsumerSendBuffer.Count != 0)
                         {
-                            foreach (var dataStream in keyVal.Value.ConsumerSendQueue)
+                            foreach (KeyValuePair<int, byte[]> kvp in keyVal.Value.ConsumerSendBuffer)
                             {
-                                Packet pkt = new Packet(dataStream);
+                                Packet pkt = new Packet(kvp.Value);
                                 if (ClientSockets.Contains(pkt.SenderName))
                                 {
                                     Socket clientSocket = (Socket)ClientSockets[pkt.SenderName];
-                                    clientSocket.BeginSendTo(dataStream, 0, dataStream.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), clientSocket);
+                                    clientSocket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), clientSocket);
                                 }
                             }
-                            if (keyVal.Value.ConsumerSendQueue.Count == 0)
+                            if (keyVal.Value.ConsumerSendBuffer.Count == 0)
                             {
                                 keyVal.Value.SwapSendBuffers();
                             }
@@ -615,7 +615,7 @@ namespace TestClientSimulator
                 {
                     foreach (KeyValuePair<string, Client> dict in ClientObjects)
                     {
-                        Queue<byte[]> q = dict.Value.ConsumerSendQueue;
+                        SortedDictionary<int, byte[]> sd = dict.Value.ConsumerSendBuffer;
                         int ackedSeqNum = 0;
 
                         if (sentACKEDSequenceNumbers.Contains(dict.Key))
