@@ -132,6 +132,7 @@ namespace TestUdpClient
                 Packet sendData = new Packet(friendName);
                 sendData.SenderName = "minaam";
                 sendData.ChatMessage = "request";
+                sendData.RecipientName = client.FriendName;
                 byte[] byteData = sendData.GetDataStream();
 
                 logMsg = DateTime.Now + ":\t Requesting for server.";
@@ -210,8 +211,8 @@ namespace TestUdpClient
                 // Initialise a packet object to store the data to be sent
                 Console.WriteLine("Please enter the name of user who you want to chat with");
                 client.FriendName = Console.ReadLine();
-                Packet sendData = new Packet(friendName);
-                sendData.SenderName = name;
+                Packet sendData = new Packet(client.FriendName);
+                sendData.SenderName = client.Name;
                 sendData.ChatMessage = null;
                 sendData.ChatDataIdentifier = DataIdentifier.LogIn;
                 // Initialise socket
@@ -245,12 +246,12 @@ namespace TestUdpClient
             {
                 try
                 {
-                    Packet sendData = new Packet(friendName);
+                    Packet sendData = new Packet(client.FriendName);
                     logMsg = DateTime.Now + ":\t In SendMessage()";
                     logger.Log(logMsg);
 
-                    sendData.SenderName = name;
-                    sendData.ChatMessage = name + ": ";
+                    sendData.SenderName = client.Name;
+                    sendData.ChatMessage = client.Name + ": ";
                     sendData.ChatMessage += Console.ReadLine();
                     sendData.SequenceNumber = ++sequenceNumber;
                     sendData.ChatDataIdentifier = DataIdentifier.Message;

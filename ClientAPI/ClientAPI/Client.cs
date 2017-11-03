@@ -21,7 +21,7 @@ namespace ClientAPI
         SortedDictionary<int, byte[]> _receiveBuffer = new SortedDictionary<int, byte[]>();
 
         Socket _socket;
-        EndPoint epSender;
+        EndPoint _epSender;
         byte[] dataStream = new byte[1024];
 
         object lockProducerBuffer = new object();
@@ -33,8 +33,20 @@ namespace ClientAPI
         int _oldestSentACK;
         int _portNum;
 
-        public Client ()
+        public Client (string name, string friendName, EndPoint epSender)
         {
+            _name = name;
+            _friendName = friendName;
+            _epSender = epSender;
+            _sendBuffer1 = new SortedDictionary<int, byte[]>();
+            _sendBuffer2 = new SortedDictionary<int, byte[]>();
+            _producerSendBuffer = _sendBuffer1;
+            _consumerSendBuffer = _sendBuffer2;
+
+            _lastReceiveACK = 0;
+            _lastSentACK = 0;
+            _portNum = 0;
+            _socket = null;
         }
 
         public Client(Socket s, string name)
@@ -92,8 +104,8 @@ namespace ClientAPI
 
         public EndPoint EpSender
         {
-            get { return epSender; }
-            set { epSender = value; }
+            get { return _epSender; }
+            set { _epSender = value; }
         }
 
         public void InsertInReceiveBuffer(byte[] byteData, int sequenceNumber)
