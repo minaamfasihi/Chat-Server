@@ -31,7 +31,7 @@ namespace TestUdpClient
         private static int sequenceNumber = 0;
         private static int expectedSequenceNumber;
 
-        Client client = new Client();
+        Client client;
 
         private static int port;
         private static int LBport = 9000;
@@ -108,8 +108,8 @@ namespace TestUdpClient
             {
                 logMsg = DateTime.Now + ":\t In LBConnectCallback()";
                 logger.Log(logMsg);
-                Socket client = (Socket)ar.AsyncState;
-                client.EndConnect(ar);
+                Socket sock = (Socket)ar.AsyncState;
+                sock.EndConnect(ar);
                 LBRequestForServer();
             }
             catch (Exception e)
@@ -128,9 +128,11 @@ namespace TestUdpClient
             {
                 logMsg = DateTime.Now + ":\t In LBRequestForServer()";
                 logger.Log(logMsg);
-                client.FriendName = "fasihi";
+                IPEndPoint clientEP = new IPEndPoint(IPAddress.Parse(clientIPAddress), port);
+                client = new Client("minaam", "fasihi", (EndPoint)clientEP);
+
                 Packet sendData = new Packet(friendName);
-                sendData.SenderName = "minaam";
+                sendData.SenderName = client.Name;
                 sendData.ChatMessage = "request";
                 sendData.RecipientName = client.FriendName;
                 byte[] byteData = sendData.GetDataStream();
@@ -156,9 +158,9 @@ namespace TestUdpClient
             {
                 logMsg = DateTime.Now + ":\t In LBRequestForServerCallback()";
                 logger.Log(logMsg);
-                Socket client = (Socket)ar.AsyncState;
-                client.EndSend(ar);
-                client.BeginReceive(this.dataStream, 0, this.dataStream.Length, 0, new AsyncCallback(LBReceiveCallback), client);
+                Socket sock = (Socket)ar.AsyncState;
+                sock.EndSend(ar);
+                sock.BeginReceive(this.dataStream, 0, this.dataStream.Length, 0, new AsyncCallback(LBReceiveCallback), sock);
             }
             catch (Exception e)
             {
