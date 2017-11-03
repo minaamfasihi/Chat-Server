@@ -33,6 +33,7 @@ namespace TestUdpServer
         private static ConcurrentDictionary<string, Client> clientBuffers = new ConcurrentDictionary<string, Client>();
         private static ConcurrentDictionary<string, Client> clientBuffersForBroadcast = new ConcurrentDictionary<string, Client>();
         private static object tempReceiveBufferLock = new object();
+        private static object clientBufferBroadcastLock = new object();
         private static int windowSize = 4;
         private static System.Timers.Timer aTimer;
         private const int LBport = 9000;
@@ -42,6 +43,7 @@ namespace TestUdpServer
         private static AutoResetEvent sendACKEvent = new AutoResetEvent(false);
         private static AutoResetEvent receiveDataEvent = new AutoResetEvent(false);
         private static LogWriter logger = Logger.Instance;
+        private object clientBufferLock = new object();
         private static int serverPort;
         private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\Server-logs-";
         private static string serverIPAddress;
@@ -328,7 +330,7 @@ namespace TestUdpServer
                                             {
                                                 if (!sortedDict.ContainsKey(receivedData.SequenceNumber))
                                                 {
-                                                    clientBuffers[receivedData.SenderName].InsertInSendQueue(receivedData.SequenceNumber, receivedData);
+                                                    clientBuffers[receivedData.SenderName].InsertInSendBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
                                                     SendACKToClient(receivedData.SenderName);
                                                     processSendEvent.Set();
                                                 }
@@ -338,7 +340,7 @@ namespace TestUdpServer
                                         {
                                             lock (clientBufferLock)
                                             {
-                                                clientBuffers[receivedData.SenderName].Add(receivedData.SequenceNumber, receivedData);
+                                                clientBuffers[receivedData.SenderName].InsertInSendBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
                                             }
                                             SendACKToClient(receivedData.SenderName);
                                             processSendEvent.Set();

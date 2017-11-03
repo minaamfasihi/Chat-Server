@@ -191,13 +191,24 @@ namespace ClientAPI
             }
         }
 
-        public void CleanUpSendQueue(int lastACK)
+        public void CleanSendQueue()
         {
             if (_consumerSendBuffer.Count != 0)
             {
-                foreach (int i = _consumerSendBuffer.Keys.)
+                for (int i = _consumerSendBuffer.Keys.First(); _consumerSendBuffer.Any() && i < _consumerSendBuffer.Keys.Last(); i++)
                 {
-
+                    if (_consumerSendBuffer.ContainsKey(i) && i <= LastSentACK)
+                    {
+                        _consumerSendBuffer.Remove(i);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                if (_consumerSendBuffer.Count == 0)
+                {
+                    SwapSendBuffers();
                 }
             }
         }

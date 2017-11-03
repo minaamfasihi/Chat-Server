@@ -615,29 +615,13 @@ namespace TestClientSimulator
                 {
                     foreach (KeyValuePair<string, Client> dict in ClientObjects)
                     {
-                        SortedDictionary<int, byte[]> sd = dict.Value.ConsumerSendBuffer;
-                        int ackedSeqNum = 0;
-
                         if (sentACKEDSequenceNumbers.Contains(dict.Key))
                         {
-                            ackedSeqNum = (int)sentACKEDSequenceNumbers[dict.Key];
-                            while (q.Any())
-                            {
-                                int lastACKAtClient = new Packet(q.Peek()).SequenceNumber;
-                                if (lastACKAtClient < ackedSeqNum)
-                                {
-                                    q.Dequeue();
-                                }
-                                else break;
-                            }
-                            if (q.Count == 0)
-                            {
-                                dict.Value.SwapSendBuffers();
-                            }
+                            dict.Value.CleanSendQueue();
                         }
                     }
                 }
-                throttleSender.Set();
+                //throttleSender.Set();
             }
         }
 

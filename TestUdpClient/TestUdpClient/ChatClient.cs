@@ -265,7 +265,7 @@ namespace TestUdpClient
                     try
                     {
                         byte[] byteData = sendData.GetDataStream();
-                        client.InsertInSendQueue(byteData);
+                        client.InsertInSendBuffer(sendData.SequenceNumber, byteData);
                         processSendQueue.Set();
                     }
 
@@ -297,22 +297,22 @@ namespace TestUdpClient
 
                 try
                 {
-                    Queue<byte[]> tempSendQueue = null;
+                    SortedDictionary<int, byte[]> tempSendBuffer = null;
 
-                    if (client.ConsumerSendQueue.Count != 0)
+                    if (client.ConsumerSendBuffer.Count != 0)
                     {
-                        tempSendQueue = client.ConsumerSendQueue;
+                        tempSendBuffer = client.ConsumerSendBuffer;
                     }
 
-                    if (tempSendQueue.Count != 0)
+                    if (tempSendBuffer.Count != 0)
                     {
-                        foreach (var q in tempSendQueue)
+                        foreach (KeyValuePair<int, byte[]> kvp in tempSendBuffer)
                         {
-                            client.socket.BeginSendTo(q, 0, q.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
+                            client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
                         }
                     }
 
-                    if (tempSendQueue.Count == 0)
+                    if (tempSendBuffer.Count == 0)
                     {
                         client.SwapSendBuffers();
                     }
@@ -476,7 +476,7 @@ namespace TestUdpClient
             while (true)
             {
                 partialCleanerSendQueue.WaitOne();
-                client.CleanUpSendQueue(latestSendPacketSeqNum);
+                client.CleanSendQueue();
                 oldestSendPacketSeqNum = latestSendPktACKED - 1;
             }
         }
