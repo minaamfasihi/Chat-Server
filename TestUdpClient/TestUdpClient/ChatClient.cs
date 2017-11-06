@@ -307,17 +307,20 @@ namespace TestUdpClient
                         tempSendBuffer = client.ConsumerSendBuffer;
                     }
 
-                    if (tempSendBuffer.Count != 0)
+                    if (tempSendBuffer != null)
                     {
-                        foreach (KeyValuePair<int, byte[]> kvp in tempSendBuffer)
+                        if (tempSendBuffer.Count != 0)
                         {
-                            client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
+                            foreach (KeyValuePair<int, byte[]> kvp in tempSendBuffer)
+                            {
+                                client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
+                            }
                         }
-                    }
 
-                    if (tempSendBuffer.Count == 0)
-                    {
-                        client.SwapSendBuffers();
+                        if (tempSendBuffer.Count == 0)
+                        {
+                            client.SwapSendBuffers();
+                        }
                     }
 
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
@@ -635,7 +638,7 @@ namespace TestUdpClient
                 Thread t5 = new Thread(client.CleanSendQueue);
                 t5.Start();
                 Thread t6 = new Thread(client.MessageProductionRate);
-                t6.Start();
+                //t6.Start();
                 client.SendMessage();
                 t1.Join();
                 t2.Join();
