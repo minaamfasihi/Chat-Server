@@ -265,7 +265,7 @@ namespace TestUdpServer
                 // Initialise the IPEndPoint for the clients
                 IPEndPoint clients = new IPEndPoint(IPAddress.Any, 0);
                 // Initialise the EndPoint for the clients
-                EndPoint epSender = (EndPoint)clients;
+                epSender = (EndPoint)clients;
                 // Receive all data
                 serverSocket.EndReceiveFrom(asyncResult, ref epSender);
                 receiveDataEvent.Set();
@@ -391,7 +391,7 @@ namespace TestUdpServer
                                     clientsList.Add(client.Name.ToLower(), client);
                                 }
 
-
+                                client.EpSender = epSender;
                                 SendACKToClient(receivedData.SenderName);
                                 sendData.ChatMessage = string.Format("-- {0} is online --", receivedData.SenderName);
                                 break;
@@ -608,7 +608,7 @@ namespace TestUdpServer
             logger.Log(logMsg);
             byte[] data = sendData.GetDataStream();
             Client recipient = (Client)clientsList[sendData.RecipientName];
-            serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.EpSender, new AsyncCallback(SendData), recipient.EpSender);
+            serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.EpSender, new AsyncCallback(SendData), recipient.socket);
             logMsg = DateTime.Now + ":\t Exiting SendMessageToClient()";
             logger.Log(logMsg);
         }
@@ -674,7 +674,7 @@ namespace TestUdpServer
                 sendData.SequenceNumber = lastValidSeqNum;
                 byte[] data = sendData.GetDataStream();
                 Client recipient = (Client)clientsList[sendData.RecipientName];
-                serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.EpSender, new AsyncCallback(SendData), recipient.EpSender);
+                serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epSender, new AsyncCallback(SendData), recipient.socket);
             }
 
             logMsg = DateTime.Now + ":\t Exiting SendACKToClient()";
