@@ -44,6 +44,7 @@ namespace TestUdpClient
         private static int latestReceivePacketSeqNum = 0;
         private static int numOfPktsProduced = 0;
         private static int prevNumOfPktsProduced = 0;
+        private static bool alreadySwapped = false;
 
         private static SortedDictionary<int, Packet> receiveMessageBuffer = new SortedDictionary<int, Packet>();
 
@@ -302,25 +303,20 @@ namespace TestUdpClient
                 {
                     SortedDictionary<int, byte[]> tempSendBuffer = null;
 
-                    if (client.ConsumerSendBuffer.Count != 0)
+                    tempSendBuffer = client.ConsumerSendBuffer;
+
+                    if (tempSendBuffer.Count != 0)
                     {
-                        tempSendBuffer = client.ConsumerSendBuffer;
+                        foreach (KeyValuePair<int, byte[]> kvp in tempSendBuffer)
+                        {
+                            client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
+                        }
                     }
 
-                    if (tempSendBuffer != null)
+                    if (tempSendBuffer.Count == 0 && !alreadySwapped)
                     {
-                        if (tempSendBuffer.Count != 0)
-                        {
-                            foreach (KeyValuePair<int, byte[]> kvp in tempSendBuffer)
-                            {
-                                client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
-                            }
-                        }
-
-                        if (tempSendBuffer.Count == 0)
-                        {
-                            client.SwapSendBuffers();
-                        }
+                        client.SwapSendBuffers();
+                        alreadySwapped = true;
                     }
 
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
