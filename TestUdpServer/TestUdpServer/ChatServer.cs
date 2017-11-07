@@ -673,8 +673,8 @@ namespace TestUdpServer
 
                 sendData.SequenceNumber = lastValidSeqNum;
                 byte[] data = sendData.GetDataStream();
-                Client recipient = (Client)clientsList[sendData.RecipientName];
-                serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epSender, new AsyncCallback(SendData), recipient.socket);
+                Client recipient = (Client)clientsList[clientName];
+                serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.EpSender, new AsyncCallback(SendData), recipient.socket);
             }
 
             logMsg = DateTime.Now + ":\t Exiting SendACKToClient()";

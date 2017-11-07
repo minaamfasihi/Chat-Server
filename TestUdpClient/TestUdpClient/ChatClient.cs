@@ -229,7 +229,7 @@ namespace TestUdpClient
                 client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), null);
 
                 // Begin listening for broadcasts
-                client.socket.BeginReceiveFrom(client.DataStream, 0, client.DataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(this.ReceiveData), null);
+                client.socket.BeginReceiveFrom(this.client.DataStream, 0, this.client.DataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(this.ReceiveData), null);
                 logMsg = DateTime.Now + ":\t Client is trying to connect to the server";
                 logger.Log(logMsg);
             }
@@ -400,21 +400,24 @@ namespace TestUdpClient
                 }
                 else
                 {
-                    if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
-                    {
-                        client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
-                        //receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
-                        SendACKToServer();
-                        processReceiveQueue.Set();
-                    }
-
-                    if (currentReceiveWindowHasSpace() && liesInRangeForReceive(receivedData.SequenceNumber))
+                    if (receivedData.SenderName != "LoadBalancer")
                     {
                         if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
                         {
-                            receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
+                            client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
+                            //receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
                             SendACKToServer();
                             processReceiveQueue.Set();
+                        }
+
+                        if (currentReceiveWindowHasSpace() && liesInRangeForReceive(receivedData.SequenceNumber))
+                        {
+                            if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
+                            {
+                                receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
+                                SendACKToServer();
+                                processReceiveQueue.Set();
+                            }
                         }
                     }
                 }
