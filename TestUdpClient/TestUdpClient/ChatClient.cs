@@ -390,7 +390,7 @@ namespace TestUdpClient
                 logMsg = DateTime.Now + ":\t In ReceiveData()";
                 logger.Log(logMsg);
                 client.socket.EndReceive(ar);
-                Packet receivedData = new Packet(dataStream);
+                Packet receivedData = new Packet(client.DataStream);
 
                 if (receivedData.ChatMessage == "ACK")
                 {
