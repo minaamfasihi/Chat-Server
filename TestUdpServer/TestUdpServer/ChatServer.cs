@@ -15,7 +15,6 @@ using ClientAPI;
 
 namespace TestUdpServer
 {
-
     class ChatServer
     {
         #region Private Members
@@ -31,7 +30,10 @@ namespace TestUdpServer
         private static int prevNumOfPktsSent = 0;
         private static Queue<byte[]> tempReceiveBuffer = new Queue<byte[]>();
         private static ConcurrentDictionary<string, Client> clientBuffers = new ConcurrentDictionary<string, Client>();
-        private static ConcurrentDictionary<string, SortedDictionary<int, byte[]>> clientBuffersForBroadcast = new ConcurrentDictionary<string, SortedDictionary<int, byte[]>>();
+        private static ConcurrentDictionary<string, SortedDictionary<int, byte[]>> clientBuffersForBroadcast 
+            = 
+            new ConcurrentDictionary<string, SortedDictionary<int, byte[]>>();
+
         private static object tempReceiveBufferLock = new object();
         private static object clientBufferBroadcastLock = new object();
         private static int windowSize = 4;
@@ -501,7 +503,10 @@ namespace TestUdpServer
                         foreach (KeyValuePair<int, byte[]> entry in tempDict)
                         {
                             Packet pkt = new Packet(entry.Value);
-                            RelayMessage(pkt);
+                            if (pkt.ChatDataIdentifier != DataIdentifier.LogIn)
+                            {
+                                RelayMessage(pkt);
+                            }
                         }
                     }
                     tempBuffer = null;
