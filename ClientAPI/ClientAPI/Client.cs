@@ -19,6 +19,7 @@ namespace ClientAPI
         SortedDictionary<int, byte[]> _sendBuffer1;
         SortedDictionary<int, byte[]> _sendBuffer2;
         SortedDictionary<int, byte[]> _receiveBuffer = new SortedDictionary<int, byte[]>();
+        SortedDictionary<int, byte[]> _awaitingSendACKsBuffer = new SortedDictionary<int, byte[]>();
 
         Socket _socket;
         EndPoint _epSender;
@@ -29,7 +30,7 @@ namespace ClientAPI
 
         int _lastReceiveACK;
         int _oldestReceiveACK;
-        int _lastSentACK;
+        int _lastACKForSendBuffer;
         int _oldestSentACK;
         int _portNum;
 
@@ -44,7 +45,7 @@ namespace ClientAPI
             _consumerSendBuffer = _sendBuffer2;
 
             _lastReceiveACK = 0;
-            _lastSentACK = 0;
+            _lastACKForSendBuffer = 0;
             _portNum = 0;
             _socket = null;
         }
@@ -58,7 +59,7 @@ namespace ClientAPI
             _consumerSendBuffer = _sendBuffer2;
 
             _lastReceiveACK = 0;
-            _lastSentACK = 0;
+            _lastACKForSendBuffer = 0;
             _portNum = 0;
             _socket = s;
         }
@@ -75,10 +76,10 @@ namespace ClientAPI
             set { _lastReceiveACK = value; }
         }
 
-        public int LastSentACK
+        public int LastACKForSendBuffer
         {
-            get { return _lastSentACK; }
-            set { _lastSentACK = value; }
+            get { return _lastACKForSendBuffer; }
+            set { _lastACKForSendBuffer = value; }
         }
 
         public int PortNumber
@@ -102,6 +103,11 @@ namespace ClientAPI
             get { return _receiveBuffer; }
         }
 
+        public SortedDictionary<int, byte[]> AwaitingSendACKsBuffer
+        {
+            get { return _awaitingSendACKsBuffer; }
+        }
+
         public EndPoint EpSender
         {
             get { return _epSender; }
@@ -113,6 +119,14 @@ namespace ClientAPI
             if (!_receiveBuffer.ContainsKey(sequenceNumber))
             {
                 _receiveBuffer.Add(sequenceNumber, byteData);
+            }
+        }
+
+        public void InsertInAwaitingSendACKsBuffer(int sequenceNumber, byte[] byteData)
+        {
+            if (!_awaitingSendACKsBuffer.ContainsKey(sequenceNumber))
+            {
+                _awaitingSendACKsBuffer.Add(sequenceNumber, byteData);
             }
         }
 
@@ -203,15 +217,15 @@ namespace ClientAPI
             }
         }
 
-        public void CleanSendQueue()
+        public void CleanSendBuffer()
         {
-            if (_consumerSendBuffer.Count != 0)
+            if (_awaitingSendACKsBuffer.Count != 0)
             {
-                for (int i = _consumerSendBuffer.Keys.First(); _consumerSendBuffer.Any() && i < _consumerSendBuffer.Keys.Last(); i++)
+                for (int i = _awaitingSendACKsBuffer.Keys.First(); _awaitingSendACKsBuffer.Any() && i < _awaitingSendACKsBuffer.Keys.Last(); i++)
                 {
-                    if (_consumerSendBuffer.ContainsKey(i) && i <= LastSentACK)
+                    if (_awaitingSendACKsBuffer.ContainsKey(i) && i <= LastACKForSendBuffer)
                     {
-                        _consumerSendBuffer.Remove(i);
+                        _awaitingSendACKsBuffer.Remove(i);
                     }
                     else
                     {

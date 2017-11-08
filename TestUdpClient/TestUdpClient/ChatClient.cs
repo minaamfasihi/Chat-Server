@@ -302,6 +302,11 @@ namespace TestUdpClient
                 try
                 {
                     SortedDictionary<int, byte[]> tempSendBuffer = null;
+                    if (tempSendBuffer.Count == 0 && !alreadySwapped)
+                    {
+                        client.SwapSendBuffers();
+                        alreadySwapped = true;
+                    }
 
                     tempSendBuffer = client.ConsumerSendBuffer;
 
@@ -310,15 +315,10 @@ namespace TestUdpClient
                         foreach (KeyValuePair<int, byte[]> kvp in tempSendBuffer)
                         {
                             client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
+                            client.InsertInAwaitingSendACKsBuffer(kvp.Key, kvp.Value);
                         }
                     }
-
-                    if (tempSendBuffer.Count == 0 && !alreadySwapped)
-                    {
-                        client.SwapSendBuffers();
-                        alreadySwapped = true;
-                    }
-
+                    tempSendBuffer.Clear();
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
                     logger.Log(logMsg);
                 }
@@ -396,6 +396,7 @@ namespace TestUdpClient
                 {
                     latestSendPktACKED = receivedData.SequenceNumber;
                     Console.WriteLine("ACK Packet: " + receivedData.SequenceNumber + " " + receivedData.ChatMessage);
+                    client.LastACKForSendBuffer = receivedData.SequenceNumber;
                     partialCleanerSendQueue.Set();
                 }
                 else
@@ -481,7 +482,7 @@ namespace TestUdpClient
             while (true)
             {
                 partialCleanerSendQueue.WaitOne();
-                client.CleanSendQueue();
+                client.CleanSendBuffer();
                 oldestSendPacketSeqNum = latestSendPktACKED - 1;
             }
         }
