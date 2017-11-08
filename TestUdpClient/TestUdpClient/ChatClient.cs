@@ -301,24 +301,21 @@ namespace TestUdpClient
 
                 try
                 {
-                    SortedDictionary<int, byte[]> tempSendBuffer = null;
-                    if (tempSendBuffer.Count == 0 && !alreadySwapped)
+                    if (client.ConsumerSendBuffer.Count == 0 /*&& !alreadySwapped*/)
                     {
                         client.SwapSendBuffers();
                         alreadySwapped = true;
                     }
 
-                    tempSendBuffer = client.ConsumerSendBuffer;
-
-                    if (tempSendBuffer.Count != 0)
+                    if (client.ConsumerSendBuffer.Count != 0)
                     {
-                        foreach (KeyValuePair<int, byte[]> kvp in tempSendBuffer)
+                        foreach (KeyValuePair<int, byte[]> kvp in client.ConsumerSendBuffer)
                         {
                             client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
                             client.InsertInAwaitingSendACKsBuffer(kvp.Key, kvp.Value);
                         }
                     }
-                    tempSendBuffer.Clear();
+                    client.ConsumerSendBuffer.Clear();
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
                     logger.Log(logMsg);
                 }
