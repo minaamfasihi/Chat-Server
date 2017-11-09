@@ -48,7 +48,7 @@ namespace TestUdpServer
             }
         }
 
-        public void SwapProducerList()
+        private void SwapProducerList()
         {
             if (_senderClientsProducerList == _senderClientsList1)
             {
@@ -60,7 +60,7 @@ namespace TestUdpServer
             }
         }
 
-        public void SwapConsumerList()
+        private void SwapConsumerList()
         {
             if (_senderClientsConsumerList == _senderClientsList1)
             {

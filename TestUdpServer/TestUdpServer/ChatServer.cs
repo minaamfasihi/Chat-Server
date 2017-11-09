@@ -29,10 +29,15 @@ namespace TestUdpServer
         private static int numOfPktsSent = 0;
         private static int prevNumOfPktsSent = 0;
         private static Queue<byte[]> tempReceiveBuffer = new Queue<byte[]>();
-        private static ConcurrentDictionary<string, Client> clientBuffers = new ConcurrentDictionary<string, Client>();
-        private static ConcurrentDictionary<string, SortedDictionary<int, byte[]>> clientBuffersForBroadcast 
-            = 
-            new ConcurrentDictionary<string, SortedDictionary<int, byte[]>>();
+
+        private static ConcurrentDictionary<string, Client> 
+            clientBuffers = new ConcurrentDictionary<string, Client>();
+
+        private static ConcurrentDictionary<string, SortedDictionary<int, byte[]>> 
+            clientBuffersForBroadcast = new ConcurrentDictionary<string, SortedDictionary<int, byte[]>>();
+
+        private static ConcurrentDictionary<string, SortedDictionary<int, byte[]>> 
+            senderWaitingForACKs = new ConcurrentDictionary<string, SortedDictionary<int, byte[]>>();
 
         private static object tempReceiveBufferLock = new object();
         private static object clientBufferBroadcastLock = new object();
@@ -52,6 +57,7 @@ namespace TestUdpServer
         private static string LBIPAddress;
         private static int rawNumOfPktsReceived = 0;
         private static int prevRawNumOfPktsReceived = 0;
+        private static ClientsList senderClientsObject = new ClientsList();
         #endregion
 
         #region Constructor
@@ -334,6 +340,7 @@ namespace TestUdpServer
                                                 {
                                                     clientBuffers[receivedData.SenderName].InsertInSendBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
                                                     SendACKToClient(receivedData.SenderName);
+                                                    senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
                                                     processSendEvent.Set();
                                                 }
                                             }
@@ -344,6 +351,7 @@ namespace TestUdpServer
                                             {
                                                 clientBuffers[receivedData.SenderName].InsertInSendBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
                                             }
+                                            senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
                                             SendACKToClient(receivedData.SenderName);
                                             processSendEvent.Set();
                                         }
@@ -355,9 +363,10 @@ namespace TestUdpServer
                                             lock (clientBufferBroadcastLock)
                                             {
                                                 recipientDict = clientBuffersForBroadcast[receivedData.RecipientName];
+                                                clientBuffersForBroadcast[receivedData.RecipientName].Add(receivedData.SequenceNumber, receivedData.GetDataStream());
                                                 if (!recipientDict.ContainsKey(receivedData.SequenceNumber))
                                                 {
-                                                    clientBuffersForBroadcast[receivedData.RecipientName].Add(receivedData.SequenceNumber, receivedData.GetDataStream());
+                                                    senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
                                                 }
                                             }
                                         }
@@ -369,6 +378,7 @@ namespace TestUdpServer
                                             {
                                                 clientBuffersForBroadcast.TryAdd(receivedData.RecipientName, broadcastMsgs);
                                             }
+                                            senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
                                         }
                                         processBroadcastEvent.Set();
                                         SendACKToServerForBroadcast(receivedData);
@@ -478,7 +488,7 @@ namespace TestUdpServer
         private void ProcessSendBuffer()
         {
             string logMsg = "";
-            ConcurrentDictionary<string, Client> tempBuffer;
+            Client clientObj;
             while (true)
             {
                 processSendEvent.WaitOne();
@@ -487,29 +497,37 @@ namespace TestUdpServer
 
                 try
                 {
-                    lock (clientBufferLock)
+                    foreach (string clientName in senderClientsObject.SenderConsumerList)
                     {
-                        tempBuffer = new ConcurrentDictionary<string, Client>(clientBuffers);
-                    }
-
-                    foreach (KeyValuePair<string, Client> kvp in tempBuffer)
-                    {
-                        SortedDictionary<int, byte[]> tempDict;
-                        lock (clientBufferLock)
+                        if (clientBuffers.ContainsKey(clientName))
                         {
-                            tempDict = kvp.Value.ConsumerSendBuffer;
-                        }
-
-                        foreach (KeyValuePair<int, byte[]> entry in tempDict)
-                        {
-                            Packet pkt = new Packet(entry.Value);
-                            if (pkt.ChatDataIdentifier != DataIdentifier.LogIn)
+                            clientObj = clientBuffers[clientName];
+                            if (clientObj.ConsumerSendBuffer.Any())
                             {
-                                RelayMessage(pkt);
+                                int startInd = clientObj.ConsumerSendBuffer.Keys.First();
+                                int lastInd = clientObj.ConsumerSendBuffer.Keys.Last();
+
+                                for (int i = startInd; clientObj.ConsumerSendBuffer.Any() && i <= lastInd; i++)
+                                {
+                                    if (clientObj.ConsumerSendBuffer.ContainsKey(i))
+                                    {
+                                        Packet pkt = new Packet(clientObj.ConsumerSendBuffer[i]);
+                                        if (pkt.ChatDataIdentifier != DataIdentifier.LogIn)
+                                        {
+                                            RelayMessage(pkt);
+                                            clientObj.MoveFromConsumerToACKBuffer(pkt.SequenceNumber, pkt);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+                                }
+                                InsertInSenderWaitingForACKs(clientName, clientObj.AwaitingSendACKsBuffer);
                             }
                         }
                     }
-                    tempBuffer = null;
+                    senderClientsObject.SwapProducerConsumerList();
                 }
                 catch (Exception e)
                 {
@@ -722,6 +740,16 @@ namespace TestUdpServer
 
             logMsg = DateTime.Now + ":\t Exiting SendACKToClient()";
             logger.Log(logMsg);
+        }
+
+        public void InsertInSenderWaitingForACKs(string name, SortedDictionary<int, byte[]> sd)
+        {
+            if (!senderWaitingForACKs.ContainsKey(name))
+            {
+                senderWaitingForACKs.TryAdd(name, null);
+            }
+
+            senderWaitingForACKs[name] = sd;
         }
 
         static void Main(string[] args)
