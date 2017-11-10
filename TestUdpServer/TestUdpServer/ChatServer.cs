@@ -522,10 +522,10 @@ namespace TestUdpServer
                                             InsertInSenderWaitingForACKs(clientName, pkt.SequenceNumber, pkt.GetDataStream());
                                         }
                                     }
-                                    else
-                                    {
-                                        break;
-                                    }
+                                    //else
+                                    //{
+                                    //    break;
+                                    //}
                                 }
                             }
                         }
