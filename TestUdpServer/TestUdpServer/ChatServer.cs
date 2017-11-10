@@ -495,6 +495,7 @@ namespace TestUdpServer
                 logMsg = "In ProcessSendBuffer()";
                 logger.Log(logMsg);
 
+                senderClientsObject.SwapProducerConsumerList();
                 try
                 {
                     foreach (string clientName in senderClientsObject.SenderConsumerList)
@@ -502,6 +503,8 @@ namespace TestUdpServer
                         if (clientBuffers.ContainsKey(clientName))
                         {
                             clientObj = clientBuffers[clientName];
+                            clientObj.SwapSendBuffers();
+
                             if (clientObj.ConsumerSendBuffer.Any())
                             {
                                 int startInd = clientObj.ConsumerSendBuffer.Keys.First();
@@ -516,6 +519,7 @@ namespace TestUdpServer
                                         {
                                             RelayMessage(pkt);
                                             clientObj.MoveFromConsumerToACKBuffer(pkt.SequenceNumber, pkt);
+                                            InsertInSenderWaitingForACKs(clientName, pkt.SequenceNumber, pkt.GetDataStream());
                                         }
                                     }
                                     else
@@ -523,11 +527,9 @@ namespace TestUdpServer
                                         break;
                                     }
                                 }
-                                InsertInSenderWaitingForACKs(clientName, clientObj.AwaitingSendACKsBuffer);
                             }
                         }
                     }
-                    senderClientsObject.SwapProducerConsumerList();
                 }
                 catch (Exception e)
                 {
@@ -742,14 +744,23 @@ namespace TestUdpServer
             logger.Log(logMsg);
         }
 
-        public void InsertInSenderWaitingForACKs(string name, SortedDictionary<int, byte[]> sd)
+        public void InsertInSenderWaitingForACKs(string name, int sequenceNumber, byte[] byteData)
         {
-            if (!senderWaitingForACKs.ContainsKey(name))
+            try
             {
-                senderWaitingForACKs.TryAdd(name, null);
+                if (!senderWaitingForACKs.ContainsKey(name))
+                {
+                    senderWaitingForACKs.TryAdd(name, new SortedDictionary<int, byte[]>());
+                }
+                if (!senderWaitingForACKs[name].ContainsKey(sequenceNumber))
+                {
+                    senderWaitingForACKs[name].Add(sequenceNumber, byteData);
+                }
             }
-
-            senderWaitingForACKs[name] = sd;
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
         }
 
         static void Main(string[] args)
