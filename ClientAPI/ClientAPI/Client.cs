@@ -64,6 +64,11 @@ namespace ClientAPI
             _socket = s;
         }
 
+        public Client()
+        {
+
+        }
+
         public Socket socket
         {
             get { return _socket; }
@@ -159,14 +164,6 @@ namespace ClientAPI
 
         public byte[] RemoveFromSendQueue()
         {
-            //lock (lockProducerBuffer)
-            //{
-            //    if (_producerSendBuffer.Count != 0)
-            //    {
-            //        byte[] byteData = 
-            //        _producerSendQueue.Dequeue();
-            //    }
-            //}
             return null;
         }
 
@@ -217,26 +214,36 @@ namespace ClientAPI
             }
         }
 
+        public void MoveFromConsumerToACKBuffer(int sequenceNumber, Packet pkt)
+        {
+            InsertInAwaitingSendACKsBuffer(sequenceNumber, pkt.GetDataStream());
+
+            if (_consumerSendBuffer.ContainsKey(sequenceNumber))
+            {
+                _consumerSendBuffer.Remove(sequenceNumber);
+            }
+        }
+
         public void CleanSendBuffer()
         {
-            if (_awaitingSendACKsBuffer.Count != 0)
-            {
-                for (int i = _awaitingSendACKsBuffer.Keys.First(); _awaitingSendACKsBuffer.Any() && i < _awaitingSendACKsBuffer.Keys.Last(); i++)
-                {
-                    if (_awaitingSendACKsBuffer.ContainsKey(i) && i <= LastACKForSendBuffer)
-                    {
-                        _awaitingSendACKsBuffer.Remove(i);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                if (_consumerSendBuffer.Count == 0)
-                {
-                    SwapSendBuffers();
-                }
-            }
+            //if (_awaitingSendACKsBuffer.Count != 0)
+            //{
+            //    for (int i = _awaitingSendACKsBuffer.Keys.First(); _awaitingSendACKsBuffer.Any() && i < _awaitingSendACKsBuffer.Keys.Last(); i++)
+            //    {
+            //        if (_awaitingSendACKsBuffer.ContainsKey(i) && i <= LastACKForSendBuffer)
+            //        {
+            //            _awaitingSendACKsBuffer.Remove(i);
+            //        }
+            //        else
+            //        {
+            //            break;
+            //        }
+            //    }
+            //    if (_consumerSendBuffer.Count == 0)
+            //    {
+            //        SwapSendBuffers();
+            //    }
+            //}
         }
 
         public bool ReceiveBufferHasKey(int key)
@@ -293,7 +300,6 @@ namespace ClientAPI
             {
                 Client client = (Client)ar.AsyncState;
                 _socket.EndReceive(ar);
-                //_readSendBuffer.Enqueue(clientObj.dataStream);
                 Packet p = new Packet(client.dataStream);
                 Console.WriteLine("Sender: {0}", p.SenderName);
                 Console.WriteLine("Recipient: {0}", p.RecipientName);

@@ -518,14 +518,15 @@ namespace TestUdpClient
                     string logMsg = "";
                     logMsg = DateTime.Now + ":\t In ProcessReceiveQueue()";
                     logger.Log(logMsg);
-                    if (receiveMessageBuffer.Count != 0)
+                    if (client.ReceiveBuffer.Count != 0)
                     {
-                        for (int i = receiveMessageBuffer.Keys.First(); receiveMessageBuffer.Any() && i <= receiveMessageBuffer.Keys.Last(); i++)
+                        for (int i = client.ReceiveBuffer.Keys.First(); client.ReceiveBuffer.Any() && i <= client.ReceiveBuffer.Keys.Last(); i++)
                         {
-                            if (receiveMessageBuffer.ContainsKey(i))
+                            if (client.ReceiveBuffer.ContainsKey(i))
                             {
-                                Console.WriteLine(receiveMessageBuffer[i].ChatMessage);
-                                receiveMessageBuffer.Remove(i);
+                                Packet pkt = new Packet(client.ReceiveBuffer[i]);
+                                Console.WriteLine(pkt.ChatMessage);
+                                client.ReceiveBuffer.Remove(i);
                                 latestReceivePacketSeqNum = i;
                             }
                             else break;
