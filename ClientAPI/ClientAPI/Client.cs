@@ -224,13 +224,16 @@ namespace ClientAPI
 
         public void CleanAwaitingACKsSendBuffer()
         {
-            for (int i = _awaitingSendACKsBuffer.Keys.First(); _awaitingSendACKsBuffer.Any() && i < _lastIncomingACK; i++)
+            if (_awaitingSendACKsBuffer.Count != 0)
             {
-                if (_awaitingSendACKsBuffer.ContainsKey(i))
+                for (int i = _awaitingSendACKsBuffer.Keys.First(); (_awaitingSendACKsBuffer.Count != 0) && i < _lastIncomingACK; i++)
                 {
-                    _awaitingSendACKsBuffer.Remove(i);
+                    if (_awaitingSendACKsBuffer.ContainsKey(i))
+                    {
+                        _awaitingSendACKsBuffer.Remove(i);
+                    }
+                    else break;
                 }
-                else break;
             }
         }
 
