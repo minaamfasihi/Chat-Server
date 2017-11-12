@@ -518,14 +518,10 @@ namespace TestUdpServer
                                         if (pkt.ChatDataIdentifier != DataIdentifier.LogIn)
                                         {
                                             RelayMessage(pkt);
-                                            clientObj.MoveFromConsumerToACKBuffer(pkt.SequenceNumber, pkt);
+                                            //clientObj.MoveFromConsumerToACKBuffer(pkt.SequenceNumber, pkt);
                                             InsertInSenderWaitingForACKs(clientName, pkt.SequenceNumber, pkt.GetDataStream());
                                         }
                                     }
-                                    //else
-                                    //{
-                                    //    break;
-                                    //}
                                 }
                             }
                         }

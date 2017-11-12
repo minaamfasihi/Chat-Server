@@ -28,10 +28,8 @@ namespace ClientAPI
         object lockProducerBuffer = new object();
         object lockConsumerBuffer = new object();
 
-        int _lastReceiveACK;
-        int _oldestReceiveACK;
-        int _lastACKForSendBuffer;
-        int _oldestSentACK;
+        int _lastIncomingACK;
+        int _lastOutgoingACK;
         int _portNum;
 
         public Client (string name, string friendName, EndPoint epSender)
@@ -44,8 +42,8 @@ namespace ClientAPI
             _producerSendBuffer = _sendBuffer1;
             _consumerSendBuffer = _sendBuffer2;
 
-            _lastReceiveACK = 0;
-            _lastACKForSendBuffer = 0;
+            _lastIncomingACK = 0;
+            _lastOutgoingACK = 0;
             _portNum = 0;
             _socket = null;
         }
@@ -58,8 +56,8 @@ namespace ClientAPI
             _producerSendBuffer = _sendBuffer1;
             _consumerSendBuffer = _sendBuffer2;
 
-            _lastReceiveACK = 0;
-            _lastACKForSendBuffer = 0;
+            _lastIncomingACK = 0;
+            _lastOutgoingACK = 0;
             _portNum = 0;
             _socket = s;
         }
@@ -75,16 +73,16 @@ namespace ClientAPI
             set { _socket = value; }
         }
 
-        public int LastReceiveACK
+        public int LastIncomingACK
         {
-            get { return _lastReceiveACK; }
-            set { _lastReceiveACK = value; }
+            get { return _lastIncomingACK; }
+            set { _lastIncomingACK = value; }
         }
 
-        public int LastACKForSendBuffer
+        public int LastOutgoingACK
         {
-            get { return _lastACKForSendBuffer; }
-            set { _lastACKForSendBuffer = value; }
+            get { return _lastOutgoingACK; }
+            set { _lastOutgoingACK = value; }
         }
 
         public int PortNumber
@@ -224,26 +222,16 @@ namespace ClientAPI
             }
         }
 
-        public void CleanSendBuffer()
+        public void CleanAwaitingACKsSendBuffer()
         {
-            //if (_awaitingSendACKsBuffer.Count != 0)
-            //{
-            //    for (int i = _awaitingSendACKsBuffer.Keys.First(); _awaitingSendACKsBuffer.Any() && i < _awaitingSendACKsBuffer.Keys.Last(); i++)
-            //    {
-            //        if (_awaitingSendACKsBuffer.ContainsKey(i) && i <= LastACKForSendBuffer)
-            //        {
-            //            _awaitingSendACKsBuffer.Remove(i);
-            //        }
-            //        else
-            //        {
-            //            break;
-            //        }
-            //    }
-            //    if (_consumerSendBuffer.Count == 0)
-            //    {
-            //        SwapSendBuffers();
-            //    }
-            //}
+            for (int i = _awaitingSendACKsBuffer.Keys.First(); _awaitingSendACKsBuffer.Any() && i < _lastIncomingACK; i++)
+            {
+                if (_awaitingSendACKsBuffer.ContainsKey(i))
+                {
+                    _awaitingSendACKsBuffer.Remove(i);
+                }
+                else break;
+            }
         }
 
         public bool ReceiveBufferHasKey(int key)
