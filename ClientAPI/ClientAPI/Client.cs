@@ -20,6 +20,10 @@ namespace ClientAPI
         SortedDictionary<int, byte[]> _sendBuffer2;
         SortedDictionary<int, byte[]> _receiveBuffer = new SortedDictionary<int, byte[]>();
         SortedDictionary<int, byte[]> _awaitingSendACKsBuffer = new SortedDictionary<int, byte[]>();
+        SortedDictionary<int, byte[]> _producerBroadcastBuffer = new SortedDictionary<int, byte[]>();
+        SortedDictionary<int, byte[]> _consumerBroadcastBuffer = new SortedDictionary<int, byte[]>();
+        SortedDictionary<int, byte[]> _broadcastBuffer1 = new SortedDictionary<int, byte[]>();
+        SortedDictionary<int, byte[]> _broadcastBuffer2 = new SortedDictionary<int, byte[]>();
 
         Socket _socket;
         EndPoint _epSender;
@@ -27,6 +31,9 @@ namespace ClientAPI
 
         object lockProducerBuffer = new object();
         object lockConsumerBuffer = new object();
+        object lockBroadcastProducerBuffer = new object();
+        object lockBroadcastConsumerBuffer = new object();
+        object lockAwaitingACKsSendBuffer = new object();
 
         int _lastIncomingACK;
         int _lastOutgoingACK;
@@ -39,8 +46,15 @@ namespace ClientAPI
             _epSender = epSender;
             _sendBuffer1 = new SortedDictionary<int, byte[]>();
             _sendBuffer2 = new SortedDictionary<int, byte[]>();
+            
             _producerSendBuffer = _sendBuffer1;
             _consumerSendBuffer = _sendBuffer2;
+
+            _broadcastBuffer1 = new SortedDictionary<int, byte[]>();
+            _broadcastBuffer2 = new SortedDictionary<int, byte[]>();
+
+            _producerBroadcastBuffer = _broadcastBuffer1;
+            _consumerBroadcastBuffer = _broadcastBuffer2;
 
             _lastIncomingACK = 0;
             _lastOutgoingACK = 0;
@@ -201,6 +215,42 @@ namespace ClientAPI
             }
         }
 
+        public void SwapProducerBroadcastBuffer()
+        {
+            if (_producerBroadcastBuffer == _broadcastBuffer1)
+            {
+                _producerBroadcastBuffer = _broadcastBuffer2;
+            }
+            else
+            {
+                _producerBroadcastBuffer = _broadcastBuffer1;
+            }
+        }
+
+        public void SwapConsumerBroadcastBuffer()
+        {
+            if (_consumerBroadcastBuffer == _broadcastBuffer1)
+            {
+                _consumerBroadcastBuffer = _broadcastBuffer2;
+            }
+            else
+            {
+                _consumerBroadcastBuffer = _broadcastBuffer2;
+            }
+        }
+
+        public void SwapBroadcastBuffers()
+        {
+            lock (lockConsumerBuffer)
+            {
+                lock (lockProducerBuffer)
+                {
+                    SwapProducerBuffer();
+                    SwapConsumerBuffer();
+                }
+            }
+        }
+
         public void InsertInSendBuffer(int sequenceNumber, byte[] byteData)
         {
             lock (lockProducerBuffer)
@@ -212,13 +262,38 @@ namespace ClientAPI
             }
         }
 
-        public void MoveFromConsumerToACKBuffer(int sequenceNumber, Packet pkt)
+        public void InsertInBroadcastBuffer(int sequenceNumber, byte[] byteData)
         {
-            InsertInAwaitingSendACKsBuffer(sequenceNumber, pkt.GetDataStream());
-
-            if (_consumerSendBuffer.ContainsKey(sequenceNumber))
+            lock (lockBroadcastProducerBuffer)
             {
-                _consumerSendBuffer.Remove(sequenceNumber);
+                if (!_producerBroadcastBuffer.ContainsKey(sequenceNumber))
+                {
+                    _producerBroadcastBuffer.Add(sequenceNumber, byteData);
+                }
+            }
+        }
+
+        public void MoveFromBroadcastToACKBuffer(int sequenceNumber, byte[] byteData)
+        {
+            lock (lockBroadcastConsumerBuffer)
+            {
+                if (_consumerBroadcastBuffer.ContainsKey(sequenceNumber))
+                {
+                    InsertInAwaitingSendACKsBuffer(sequenceNumber, byteData);
+                    _consumerBroadcastBuffer.Remove(sequenceNumber);
+                }
+            }
+        }
+
+        public void MoveFromConsumerToACKBuffer(int sequenceNumber, byte[] byteData)
+        {
+            lock (lockConsumerBuffer)
+            {
+                if (_consumerSendBuffer.ContainsKey(sequenceNumber))
+                {
+                    InsertInAwaitingSendACKsBuffer(sequenceNumber, byteData);
+                    _consumerSendBuffer.Remove(sequenceNumber);
+                }
             }
         }
 
@@ -230,7 +305,10 @@ namespace ClientAPI
                 {
                     if (_awaitingSendACKsBuffer.ContainsKey(i))
                     {
-                        _awaitingSendACKsBuffer.Remove(i);
+                        lock (lockAwaitingACKsSendBuffer)
+                        {
+                            _awaitingSendACKsBuffer.Remove(i);
+                        }
                     }
                     else break;
                 }
