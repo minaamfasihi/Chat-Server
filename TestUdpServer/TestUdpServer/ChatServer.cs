@@ -360,25 +360,19 @@ namespace TestUdpServer
                                     {
                                         if (clientBuffersForBroadcast.ContainsKey(receivedData.RecipientName))
                                         {
-                                            lock (clientBufferBroadcastLock)
+                                            recipientDict = clientBuffersForBroadcast[receivedData.RecipientName];
+                                            if (!recipientDict.ContainsKey(receivedData.SequenceNumber))
                                             {
-                                                recipientDict = clientBuffersForBroadcast[receivedData.RecipientName];
                                                 clientBuffersForBroadcast[receivedData.RecipientName].Add(receivedData.SequenceNumber, receivedData.GetDataStream());
-                                                if (!recipientDict.ContainsKey(receivedData.SequenceNumber))
-                                                {
-                                                    senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
-                                                }
+                                                senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
                                             }
                                         }
                                         else
                                         {
                                             SortedDictionary<int, byte[]> broadcastMsgs = new SortedDictionary<int, byte[]>();
                                             broadcastMsgs.Add(receivedData.SequenceNumber, receivedData.GetDataStream());
-                                            lock (clientBufferBroadcastLock)
-                                            {
-                                                clientBuffersForBroadcast.TryAdd(receivedData.RecipientName, broadcastMsgs);
-                                            }
-                                            senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
+                                            clientBuffersForBroadcast.TryAdd(receivedData.RecipientName, broadcastMsgs);
+                                            senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
                                         }
                                         processBroadcastEvent.Set();
                                         SendACKToServerForBroadcast(receivedData);
@@ -518,7 +512,28 @@ namespace TestUdpServer
                                         if (pkt.ChatDataIdentifier != DataIdentifier.LogIn)
                                         {
                                             RelayMessage(pkt);
-                                            //clientObj.MoveFromConsumerToACKBuffer(pkt.SequenceNumber, pkt);
+                                            clientObj.MoveFromConsumerToACKBuffer(pkt.SequenceNumber, pkt.GetDataStream());
+                                            InsertInSenderWaitingForACKs(clientName, pkt.SequenceNumber, pkt.GetDataStream());
+                                        }
+                                    }
+                                }
+                            }
+
+                            clientObj.SwapBroadcastBuffers();
+                            if (clientObj.ConsumerBroadcastBuffer.Count != 0)
+                            {
+                                int startInd = clientObj.ConsumerBroadcastBuffer.Keys.First();
+                                int lastInd = clientObj.ConsumerBroadcastBuffer.Keys.Last();
+
+                                for (int i = startInd; clientObj.ConsumerBroadcastBuffer.Any() && i <= lastInd; i++)
+                                {
+                                    if (clientObj.ConsumerBroadcastBuffer.ContainsKey(i))
+                                    {
+                                        Packet pkt = new Packet(clientObj.ConsumerBroadcastBuffer[i]);
+                                        if (pkt.ChatDataIdentifier != DataIdentifier.LogIn)
+                                        {
+                                            RelayMessage(pkt);
+                                            clientObj.MoveFromConsumerBroadcastToACKBuffer(pkt.SequenceNumber, pkt.GetDataStream());
                                             InsertInSenderWaitingForACKs(clientName, pkt.SequenceNumber, pkt.GetDataStream());
                                         }
                                     }
@@ -546,11 +561,7 @@ namespace TestUdpServer
                 Hashtable tempBrodcastBuffer;
                 try
                 {
-                    lock (clientBufferBroadcastLock)
-                    {
-                        tempBrodcastBuffer = new Hashtable(clientBuffersForBroadcast);
-                    }
-
+                    tempBrodcastBuffer = new Hashtable(clientBuffersForBroadcast);
                     foreach (DictionaryEntry dict in tempBrodcastBuffer)
                     {
                         SortedDictionary<int, Packet> tempDict;

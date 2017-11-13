@@ -20,6 +20,7 @@ namespace ClientAPI
         SortedDictionary<int, byte[]> _sendBuffer2;
         SortedDictionary<int, byte[]> _receiveBuffer = new SortedDictionary<int, byte[]>();
         SortedDictionary<int, byte[]> _awaitingSendACKsBuffer = new SortedDictionary<int, byte[]>();
+        SortedDictionary<int, byte[]> _awaitingBroadcastACKsBuffer = new SortedDictionary<int, byte[]>();
         SortedDictionary<int, byte[]> _producerBroadcastBuffer = new SortedDictionary<int, byte[]>();
         SortedDictionary<int, byte[]> _consumerBroadcastBuffer = new SortedDictionary<int, byte[]>();
         SortedDictionary<int, byte[]> _broadcastBuffer1 = new SortedDictionary<int, byte[]>();
@@ -31,12 +32,16 @@ namespace ClientAPI
 
         object lockProducerBuffer = new object();
         object lockConsumerBuffer = new object();
-        object lockBroadcastProducerBuffer = new object();
-        object lockBroadcastConsumerBuffer = new object();
         object lockAwaitingACKsSendBuffer = new object();
 
-        int _lastIncomingACK;
-        int _lastOutgoingACK;
+        object lockBroadcastProducerBuffer = new object();
+        object lockBroadcastConsumerBuffer = new object();
+        object lockAwaitingACKsBroadcastBuffer = new object();
+
+        int _lastIncomingACKForSend;
+        int _lastIncomingACKForBroadcast;
+        int _lastOutgoingACKForSend;
+        int _lastOutgoingACKForBroadcast;
         int _portNum;
 
         public Client (string name, string friendName, EndPoint epSender)
@@ -56,8 +61,12 @@ namespace ClientAPI
             _producerBroadcastBuffer = _broadcastBuffer1;
             _consumerBroadcastBuffer = _broadcastBuffer2;
 
-            _lastIncomingACK = 0;
-            _lastOutgoingACK = 0;
+            _lastIncomingACKForSend = 0;
+            _lastOutgoingACKForSend = 0;
+
+            _lastIncomingACKForBroadcast = 0;
+            _lastOutgoingACKForBroadcast = 0;
+
             _portNum = 0;
             _socket = null;
         }
@@ -67,11 +76,22 @@ namespace ClientAPI
             _name = name;
             _sendBuffer1 = new SortedDictionary<int, byte[]>();
             _sendBuffer2 = new SortedDictionary<int, byte[]>();
+
             _producerSendBuffer = _sendBuffer1;
             _consumerSendBuffer = _sendBuffer2;
 
-            _lastIncomingACK = 0;
-            _lastOutgoingACK = 0;
+            _broadcastBuffer1 = new SortedDictionary<int, byte[]>();
+            _broadcastBuffer2 = new SortedDictionary<int, byte[]>();
+
+            _producerBroadcastBuffer = _broadcastBuffer1;
+            _consumerBroadcastBuffer = _broadcastBuffer2;
+
+            _lastIncomingACKForSend = 0;
+            _lastOutgoingACKForSend = 0;
+
+            _lastIncomingACKForBroadcast = 0;
+            _lastOutgoingACKForBroadcast = 0;
+
             _portNum = 0;
             _socket = s;
         }
@@ -87,16 +107,28 @@ namespace ClientAPI
             set { _socket = value; }
         }
 
-        public int LastIncomingACK
+        public int LastIncomingACKForSend
         {
-            get { return _lastIncomingACK; }
-            set { _lastIncomingACK = value; }
+            get { return _lastIncomingACKForSend; }
+            set { _lastIncomingACKForSend = value; }
         }
 
-        public int LastOutgoingACK
+        public int LastOutgoingACKForSend
         {
-            get { return _lastOutgoingACK; }
-            set { _lastOutgoingACK = value; }
+            get { return _lastOutgoingACKForSend; }
+            set { _lastOutgoingACKForSend = value; }
+        }
+
+        public int LastIncomingACKForBroadcast
+        {
+            get { return _lastIncomingACKForBroadcast; }
+            set { _lastIncomingACKForBroadcast = value; }
+        }
+
+        public int LastOutgoingACKForBroadcast
+        {
+            get { return _lastOutgoingACKForBroadcast; }
+            set { _lastOutgoingACKForBroadcast = value; }
         }
 
         public int PortNumber
@@ -125,6 +157,16 @@ namespace ClientAPI
             get { return _awaitingSendACKsBuffer; }
         }
 
+        public SortedDictionary<int, byte[]> ProducerBroadcastBuffer
+        {
+            get { return _producerBroadcastBuffer; }
+        }
+
+        public SortedDictionary<int, byte[]> ConsumerBroadcastBuffer
+        {
+            get { return _consumerBroadcastBuffer; }
+        }
+
         public EndPoint EpSender
         {
             get { return _epSender; }
@@ -144,6 +186,14 @@ namespace ClientAPI
             if (!_awaitingSendACKsBuffer.ContainsKey(sequenceNumber))
             {
                 _awaitingSendACKsBuffer.Add(sequenceNumber, byteData);
+            }
+        }
+
+        public void InsertInAwaitingBroadcastACKsBuffer(int sequenceNumber, byte[] byteData)
+        {
+            if (!_awaitingBroadcastACKsBuffer.ContainsKey(sequenceNumber))
+            {
+                _awaitingBroadcastACKsBuffer.Add(sequenceNumber, byteData);
             }
         }
 
@@ -273,13 +323,13 @@ namespace ClientAPI
             }
         }
 
-        public void MoveFromBroadcastToACKBuffer(int sequenceNumber, byte[] byteData)
+        public void MoveFromConsumerBroadcastToACKBuffer(int sequenceNumber, byte[] byteData)
         {
             lock (lockBroadcastConsumerBuffer)
             {
                 if (_consumerBroadcastBuffer.ContainsKey(sequenceNumber))
                 {
-                    InsertInAwaitingSendACKsBuffer(sequenceNumber, byteData);
+                    InsertInAwaitingBroadcastACKsBuffer(sequenceNumber, byteData);
                     _consumerBroadcastBuffer.Remove(sequenceNumber);
                 }
             }
@@ -301,13 +351,28 @@ namespace ClientAPI
         {
             if (_awaitingSendACKsBuffer.Count != 0)
             {
-                for (int i = _awaitingSendACKsBuffer.Keys.First(); (_awaitingSendACKsBuffer.Count != 0) && i < _lastIncomingACK; i++)
+                for (int i = _awaitingSendACKsBuffer.Keys.First(); (_awaitingSendACKsBuffer.Count != 0) && i < _lastIncomingACKForSend; i++)
                 {
                     if (_awaitingSendACKsBuffer.ContainsKey(i))
                     {
                         lock (lockAwaitingACKsSendBuffer)
                         {
                             _awaitingSendACKsBuffer.Remove(i);
+                        }
+                    }
+                    else break;
+                }
+            }
+
+            if (_awaitingBroadcastACKsBuffer.Count != 0)
+            {
+                for (int i = _awaitingBroadcastACKsBuffer.Keys.First(); (_awaitingBroadcastACKsBuffer.Count != 0) && i < _lastIncomingACKForBroadcast; i++)
+                {
+                    if (_awaitingBroadcastACKsBuffer.ContainsKey(i))
+                    {
+                        lock (lockAwaitingACKsBroadcastBuffer)
+                        {
+                            _awaitingBroadcastACKsBuffer.Remove(i);
                         }
                     }
                     else break;
