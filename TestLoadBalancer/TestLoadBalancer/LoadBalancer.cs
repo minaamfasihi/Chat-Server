@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 using TestLoadBalancer;
 using System.IO;
@@ -17,11 +18,23 @@ public class LoadBalancer
     private static byte[] dataStream = new byte[1024];
     private static ArrayList connectedServers = new ArrayList();
     private static LogWriter logger = Logger.Instance;
-    private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\LB-logs-";
+    //private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\LB-logs-";
+    private static string fileName = @"C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\TestLoadBalancer\LB-logs-";
     private static string LBIPAddress;
+    private static readonly object syncLock = new object();
+    private static readonly Random getrandom = new Random();
+    private static List<string> keys = new List<string>();
 
     public LoadBalancer()
     {
+    }
+
+    public static int GetRandomNumber(int min, int max)
+    {
+        lock (syncLock)
+        {
+            return getrandom.Next(min, max);
+        }
     }
 
     public static void StartListening()
@@ -104,38 +117,44 @@ public class LoadBalancer
             listener.EndReceive(ar);
             Packet receivedData = new Packet(dataStream);
             Console.WriteLine("This is what I have received: {0}", receivedData.SenderName);
+            int index = 0;
+            string serverName;
             if (receivedData.ChatMessage == "request")
             {
                 string assignedServer = null;
-                foreach (DictionaryEntry dict in serverList)
+                while (true)
                 {
-                    if ((int)(dict.Value) < 35000)
+                    index = GetRandomNumber(0, keys.Count);
+                    if (serverList.ContainsKey(keys[index]))
                     {
-                        Console.WriteLine("this is the server you should connect to");
-                        Packet serverDetails = new Packet();
-                        serverDetails.SenderName = "LoadBalancer";
-                        serverDetails.RecipientName = "client";
-                        serverDetails.ChatMessage = (String)dict.Key;
-                        serverDetails.ChatDataIdentifier = DataIdentifier.Message;
-                        Console.WriteLine(serverDetails.ChatMessage);
-                        byte[] byteData = serverDetails.GetDataStream();
-                        listener.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(InformClient), listener);
-                        assignedServer = (String)dict.Key;
+                        serverName = (string)serverList[keys[index]];
                         break;
                     }
                 }
-                if (assignedServer != null)
+
+                Console.WriteLine("this is the server you should connect to");
+                Packet serverDetails = new Packet();
+                serverDetails.SenderName = "LoadBalancer";
+                serverDetails.RecipientName = "client";
+                serverDetails.ChatMessage = serverName;
+                serverDetails.ChatDataIdentifier = DataIdentifier.Message;
+                Console.WriteLine(serverDetails.ChatMessage);
+                byte[] byteData = serverDetails.GetDataStream();
+                listener.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(InformClient), listener);
+
+                if (serverName != null)
                 {
-                    int c = (int)serverList[assignedServer];
-                    serverList[assignedServer] = ++c;
-                    assignedServer = null;
+                    int c = (int)serverList[serverName];
+                    serverList[serverName] = ++c;
+                    serverName = null;
                 }
             }
             else
             {
-                if (!serverList.ContainsKey(receivedData.SenderName))
+                if (!serverList.ContainsKey(receivedData.SenderName) && !keys.Contains(receivedData.SenderName))
                 {
                     serverList.Add(receivedData.SenderName, 0);
+                    keys.Add(receivedData.SenderName);
                 }
 
                 // Inform the new server about the connected servers
