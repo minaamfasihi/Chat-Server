@@ -391,7 +391,7 @@ namespace TestUdpClient
                 {
                     latestSendPktACKED = receivedData.SequenceNumber;
                     Console.WriteLine("ACK Packet: " + receivedData.SequenceNumber + " " + receivedData.ChatMessage);
-                    client.LastIncomingACK = receivedData.SequenceNumber;
+                    client.LastIncomingACKForSend = receivedData.SequenceNumber;
                     partialCleanerSendBuffer.Set();
                 }
                 else
