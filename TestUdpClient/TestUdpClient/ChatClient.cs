@@ -287,7 +287,7 @@ namespace TestUdpClient
             }
         }
 
-        private void ProcessSendQueue()
+        private void ProcessSendBuffer()
         {
             while (true)
             {
@@ -299,10 +299,9 @@ namespace TestUdpClient
 
                 try
                 {
-                    if (client.ConsumerSendBuffer.Count == 0 /*&& !alreadySwapped*/)
+                    if (client.ConsumerSendBuffer.Count == 0)
                     {
                         client.SwapSendBuffers();
-                        alreadySwapped = true;
                     }
 
                     if (client.ConsumerSendBuffer.Count != 0)
@@ -310,7 +309,7 @@ namespace TestUdpClient
                         foreach (KeyValuePair<int, byte[]> kvp in client.ConsumerSendBuffer)
                         {
                             client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
-                            client.InsertInAwaitingSendACKsBuffer(kvp.Key, kvp.Value);
+                            client.MoveFromConsumerSendToACKBuffer(kvp.Key, kvp.Value);
                         }
                     }
                     client.ConsumerSendBuffer.Clear();
@@ -390,8 +389,8 @@ namespace TestUdpClient
                 {
                     latestSendPktACKED = receivedData.SequenceNumber;
                     Console.WriteLine("ACK Packet: " + receivedData.SequenceNumber + " " + receivedData.ChatMessage);
-                    client.LastIncomingACKForSend = receivedData.SequenceNumber;
-                    partialCleanerSendBuffer.Set();
+                    //client.LastIncomingACKForSend = receivedData.SequenceNumber;
+                    //partialCleanerSendBuffer.Set();
                 }
                 else
                 {
@@ -622,7 +621,7 @@ namespace TestUdpClient
                 chatClient.ConnectToServer();
                 Thread t1 = new Thread(() => logger.WriteToFile(fileName));
                 t1.Start();
-                Thread t2 = new Thread(chatClient.ProcessSendQueue);
+                Thread t2 = new Thread(chatClient.ProcessSendBuffer);
                 t2.Start();
                 Thread t3 = new Thread(chatClient.ProcessReceiveQueue);
                 t3.Start();

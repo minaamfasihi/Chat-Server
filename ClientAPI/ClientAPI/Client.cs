@@ -195,17 +195,23 @@ namespace ClientAPI
 
         public void InsertInAwaitingSendACKsBuffer(int sequenceNumber, byte[] byteData)
         {
-            if (!_awaitingSendACKsBuffer.ContainsKey(sequenceNumber))
+            lock (lockAwaitingACKsSendBuffer)
             {
-                _awaitingSendACKsBuffer.Add(sequenceNumber, byteData);
+                if (!_awaitingSendACKsBuffer.ContainsKey(sequenceNumber))
+                {
+                    _awaitingSendACKsBuffer.Add(sequenceNumber, byteData);
+                }
             }
         }
 
         public void InsertInAwaitingBroadcastACKsBuffer(int sequenceNumber, byte[] byteData)
         {
-            if (!_awaitingBroadcastACKsBuffer.ContainsKey(sequenceNumber))
+            lock (lockAwaitingACKsBroadcastBuffer)
             {
-                _awaitingBroadcastACKsBuffer.Add(sequenceNumber, byteData);
+                if (!_awaitingBroadcastACKsBuffer.ContainsKey(sequenceNumber))
+                {
+                    _awaitingBroadcastACKsBuffer.Add(sequenceNumber, byteData);
+                }
             }
         }
 
@@ -234,11 +240,6 @@ namespace ClientAPI
         {
             get { return _friendName; }
             set { _friendName = value; }
-        }
-
-        public byte[] RemoveFromSendQueue()
-        {
-            return null;
         }
 
         public void SwapProducerBuffer()
@@ -347,7 +348,7 @@ namespace ClientAPI
             }
         }
 
-        public void MoveFromConsumerToACKBuffer(int sequenceNumber, byte[] byteData)
+        public void MoveFromConsumerSendToACKBuffer(int sequenceNumber, byte[] byteData)
         {
             lock (lockConsumerBuffer)
             {
@@ -355,6 +356,28 @@ namespace ClientAPI
                 {
                     InsertInAwaitingSendACKsBuffer(sequenceNumber, byteData);
                     _consumerSendBuffer.Remove(sequenceNumber);
+                }
+            }
+        }
+
+        public void RemoveFromSendBuffer(int sequenceNumber)
+        {
+            if (ProducerSendBuffer.ContainsKey(sequenceNumber))
+            {
+                lock (lockProducerBuffer)
+                {
+                    _producerSendBuffer.Remove(sequenceNumber);
+                }
+            }
+        }
+
+        public void RemoveFromBroadcastBuffer(int sequenceNumber)
+        {
+            if (ProducerBroadcastBuffer.ContainsKey(sequenceNumber))
+            {
+                lock (lockBroadcastProducerBuffer)
+                {
+                    _producerBroadcastBuffer.Remove(sequenceNumber);
                 }
             }
         }

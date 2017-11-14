@@ -15,6 +15,8 @@ namespace TestUdpServer
         private static object senderClientsProducerLock = new object();
         private static object senderClientsConsumerLock = new object();
 
+
+
         public ClientsList()
         {
             _senderClientsProducerList = _senderClientsList1;
