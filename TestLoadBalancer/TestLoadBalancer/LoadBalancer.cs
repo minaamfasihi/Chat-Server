@@ -121,13 +121,12 @@ public class LoadBalancer
             string serverName;
             if (receivedData.ChatMessage == "request")
             {
-                string assignedServer = null;
                 while (true)
                 {
                     index = GetRandomNumber(0, keys.Count);
                     if (serverList.ContainsKey(keys[index]))
                     {
-                        serverName = (string)serverList[keys[index]];
+                        serverName = keys[index];
                         break;
                     }
                 }
@@ -146,7 +145,6 @@ public class LoadBalancer
                 {
                     int c = (int)serverList[serverName];
                     serverList[serverName] = ++c;
-                    serverName = null;
                 }
             }
             else

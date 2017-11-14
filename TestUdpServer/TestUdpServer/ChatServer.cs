@@ -288,7 +288,6 @@ namespace TestUdpServer
         private void ProcessReceiveData()
         {
             SortedDictionary<int, byte[]> sortedDict = new SortedDictionary<int, byte[]>();
-            SortedDictionary<int, byte[]> recipientDict;
             Client currentClient;
 
             while (true)
@@ -327,7 +326,6 @@ namespace TestUdpServer
                                     if (clientBuffers.ContainsKey(receivedData.SenderName))
                                     {
                                         currentClient = clientBuffers[receivedData.SenderName];
-                                        Console.WriteLine("Message: {0}", receivedData.ChatMessage);
 
                                         if (!currentClient.ProducerSendBuffer.ContainsKey(receivedData.SequenceNumber) ||
                                             !currentClient.ConsumerSendBuffer.ContainsKey(receivedData.SequenceNumber) ||
@@ -341,22 +339,14 @@ namespace TestUdpServer
                                     }
                                     else if (clientBuffers.ContainsKey(receivedData.RecipientName) && receivedData.ChatDataIdentifier == DataIdentifier.Broadcast)
                                     {
-                                        if (clientBuffersForBroadcast.ContainsKey(receivedData.RecipientName))
+                                        currentClient = clientBuffers[receivedData.RecipientName];
+                                        if (!currentClient.ProducerBroadcastBuffer.ContainsKey(receivedData.SequenceNumber) ||
+                                            !currentClient.ConsumerBroadcastBuffer.ContainsKey(receivedData.SequenceNumber) ||
+                                            !currentClient.AwaitingBroadcastACKsBuffer.ContainsKey(receivedData.SequenceNumber))
                                         {
-                                            currentClient = clientBuffersForBroadcast[receivedData.RecipientName];
-                                            if (!currentClient.ProducerBroadcastBuffer.ContainsKey(receivedData.SequenceNumber) ||
-                                                !currentClient.ConsumerBroadcastBuffer.ContainsKey(receivedData.SequenceNumber) ||
-                                                !currentClient.AwaitingBroadcastACKsBuffer.ContainsKey(receivedData.SequenceNumber))
-                                            {
-                                                currentClient.InsertInBroadcastBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
-                                                senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            SortedDictionary<int, byte[]> broadcastMsgs = new SortedDictionary<int, byte[]>();
-                                            broadcastMsgs.Add(receivedData.SequenceNumber, receivedData.GetDataStream());
+                                            currentClient.InsertInBroadcastBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
                                             senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
+                                            processSendEvent.Set();
                                         }
                                     }
                                 }
@@ -369,11 +359,6 @@ namespace TestUdpServer
                                 if (!clientBuffers.ContainsKey(client.Name))
                                 {
                                     clientBuffers.TryAdd(client.Name, client);
-                                }
-
-                                if (!clientBuffersForBroadcast.ContainsKey(client.Name))
-                                {
-                                    clientBuffersForBroadcast.TryAdd(client.Name, client);
                                 }
 
                                 if (!clientsList.ContainsKey(client.Name.ToLower()))
@@ -443,24 +428,6 @@ namespace TestUdpServer
                     }
                 }
             }
-
-            //else if (clientBuffersForBroadcast.ContainsKey(senderName))
-            //{
-            //    lock (clientBufferBroadcastLock)
-            //    {
-            //        //sortedDict = clientBuffersForBroadcast[senderName];
-            //        if (sortedDict != null && sortedDict.Count != 0)
-            //        {
-            //            for (int i = sortedDict.Keys.First(); sortedDict.Any() && i <= sortedDict.Keys.Last(); i++)
-            //            {
-            //                if (sortedDict.ContainsKey(i) && i < seqNumACKed)
-            //                {
-            //                    sortedDict.Remove(i);
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
         }
 
         private void ProcessSendBuffer()
@@ -478,7 +445,7 @@ namespace TestUdpServer
                 {
                     foreach (string clientName in senderClientsObject.SenderConsumerList)
                     {
-                        if (clientBuffers.ContainsKey(clientName) || clientBuffersForBroadcast.ContainsKey(clientName))
+                        if (clientBuffers.ContainsKey(clientName))
                         {
                             SendACKToClient(clientName);
                             clientObj = clientBuffers[clientName];
@@ -503,7 +470,6 @@ namespace TestUdpServer
                                 }
                             }
 
-                            clientObj = clientBuffersForBroadcast[clientName];
                             clientObj.SwapBroadcastBuffers();
 
                             if (clientObj.ConsumerBroadcastBuffer.Any())
@@ -631,7 +597,7 @@ namespace TestUdpServer
             tempSD = clientBuffers[clientName].ProducerSendBuffer;
             SendACKToClient(clientName, tempSD);
 
-            tempSD = clientBuffersForBroadcast[clientName].ProducerBroadcastBuffer;
+            tempSD = clientBuffers[clientName].ProducerBroadcastBuffer;
             SendACKToClient(clientName, tempSD, true);
 
             logMsg = DateTime.Now + ":\t Exiting SendACKToClient()";

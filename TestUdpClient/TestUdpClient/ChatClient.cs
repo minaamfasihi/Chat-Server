@@ -386,7 +386,6 @@ namespace TestUdpClient
                 logger.Log(logMsg);
                 client.socket.EndReceive(ar);
                 Packet receivedData = new Packet(client.DataStream);
-
                 if (receivedData.ChatMessage == "ACK")
                 {
                     latestSendPktACKED = receivedData.SequenceNumber;
