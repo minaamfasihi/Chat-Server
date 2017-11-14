@@ -49,6 +49,10 @@ namespace ClientAPI
             _name = name;
             _friendName = friendName;
             _epSender = epSender;
+
+            _awaitingSendACKsBuffer = new SortedDictionary<int, byte[]>();
+            _awaitingBroadcastACKsBuffer = new SortedDictionary<int, byte[]>();
+
             _sendBuffer1 = new SortedDictionary<int, byte[]>();
             _sendBuffer2 = new SortedDictionary<int, byte[]>();
             
@@ -74,6 +78,9 @@ namespace ClientAPI
         public Client(Socket s, string name)
         {
             _name = name;
+            _awaitingSendACKsBuffer = new SortedDictionary<int, byte[]>();
+            _awaitingBroadcastACKsBuffer = new SortedDictionary<int, byte[]>();
+
             _sendBuffer1 = new SortedDictionary<int, byte[]>();
             _sendBuffer2 = new SortedDictionary<int, byte[]>();
 
@@ -155,6 +162,11 @@ namespace ClientAPI
         public SortedDictionary<int, byte[]> AwaitingSendACKsBuffer
         {
             get { return _awaitingSendACKsBuffer; }
+        }
+
+        public SortedDictionary<int, byte[]> AwaitingBroadcastACKsBuffer
+        {
+            get { return _awaitingBroadcastACKsBuffer; }
         }
 
         public SortedDictionary<int, byte[]> ProducerBroadcastBuffer
@@ -295,8 +307,8 @@ namespace ClientAPI
             {
                 lock (lockProducerBuffer)
                 {
-                    SwapProducerBuffer();
-                    SwapConsumerBuffer();
+                    SwapProducerBroadcastBuffer();
+                    SwapConsumerBroadcastBuffer();
                 }
             }
         }
