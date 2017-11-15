@@ -446,6 +446,7 @@ namespace TestUdpServer
                             {
                                 senderClientsObject.RemoveFromProducerConsumerSendList(clientName);
                             }
+                            processSendACKBufferEvent.Set();
                         }
                     }
                 }
@@ -659,7 +660,7 @@ namespace TestUdpServer
             //Thread t5 = new Thread(server.SendACKToClient);
             //t5.Start();
             Thread t6 = new Thread(server.ProcessReceiveData);
-            t6.Start();
+            //t6.Start();
             //Thread t7 = new Thread();
             server.StartListening();
             t1.Join();

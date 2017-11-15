@@ -1,0 +1,7 @@
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\bin\Release\TestUdpServer.exe.config
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\bin\Release\TestUdpServer.exe
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\bin\Release\TestUdpServer.pdb
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\obj\Release\TestUdpServer.csprojResolveAssemblyReference.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\obj\Release\TestUdpServer.csproj.CoreCompileInputs.cache
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\obj\Release\TestUdpServer.exe
+C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpServer\TestUdpServer\obj\Release\TestUdpServer.pdb
