@@ -12,24 +12,67 @@ namespace TestUdpServer
         private List<string> _senderClientsConsumerList = null;
         private List<string> _senderClientsList1 = new List<string>();
         private List<string> _senderClientsList2 = new List<string>();
+        
         private static object senderClientsProducerLock = new object();
         private static object senderClientsConsumerLock = new object();
 
+        private List<string> _senderAwaitingACKsProducerList = new List<string>();
+        private List<string> _senderAwaitingACKsConsumerList = new List<string>();
+        private List<string> _senderAwaitingACKsClientsList1 = new List<string>();
+        private List<string> _senderAwaitingACKsClientsList2 = new List<string>();
 
+        private static object senderAwaitingACKsProducerLock = new object();
+        private static object senderAwaitingACKsConsumerLock = new object();
 
         public ClientsList()
         {
             _senderClientsProducerList = _senderClientsList1;
             _senderClientsConsumerList = _senderClientsList2;
+
+            _senderAwaitingACKsProducerList = _senderAwaitingACKsClientsList1;
+            _senderAwaitingACKsConsumerList = _senderAwaitingACKsClientsList2;
         }
 
         public void InsertInSenderClientsProducerList(string clientName)
         {
             lock (senderClientsProducerLock)
             {
-                if (!_senderClientsProducerList.Contains(clientName))
+                lock (senderClientsConsumerLock)
                 {
-                    _senderClientsProducerList.Add(clientName);
+                    if (!_senderClientsProducerList.Contains(clientName) && !_senderClientsConsumerList.Contains(clientName))
+                    {
+                        _senderClientsProducerList.Add(clientName);
+                    }
+                }
+            }
+        }
+
+        public void RemoveFromProducerConsumerSendList(string clientName)
+        {
+            lock (senderClientsProducerLock)
+            {
+                if (_senderClientsProducerList.Contains(clientName))
+                {
+                    _senderClientsProducerList.Remove(clientName);
+                }
+            }
+
+            lock (senderClientsConsumerLock)
+            {
+                if (_senderClientsConsumerList.Contains(clientName))
+                {
+                    _senderClientsConsumerList.Contains(clientName);
+                }
+            }
+        }
+
+        public void InsertInSenderClientsAwaitingACKsProducerList(string clientName)
+        {
+            lock (senderAwaitingACKsProducerLock)
+            {
+                if (!_senderAwaitingACKsProducerList.Contains(clientName))
+                {
+                    _senderAwaitingACKsProducerList.Add(clientName);
                 }
             }
         }
@@ -39,13 +82,65 @@ namespace TestUdpServer
             get { return _senderClientsConsumerList; }
         }
 
-        public void RemoveFromConsumerList(string clientName)
+        public List<string> SenderAwaitingACKsConsumerList
+        {
+            get { return _senderAwaitingACKsConsumerList; }
+        }
+
+        public void RemoveFromConsumerSendList(string clientName)
         {
             lock (senderClientsConsumerLock)
             {
                 if (_senderClientsConsumerList.Contains(clientName))
                 {
                     _senderClientsConsumerList.Remove(clientName);
+                }
+            }
+        }
+
+        public void RemoveFromConsumerSendAwaitingACKsList(string clientName)
+        {
+            lock (senderClientsConsumerLock)
+            {
+                if (_senderClientsConsumerList.Contains(clientName))
+                {
+                    _senderClientsConsumerList.Remove(clientName);
+                }
+            }
+        }
+
+        private void SwapAwaitingACKsProducerList()
+        {
+            if (_senderAwaitingACKsProducerList == _senderAwaitingACKsClientsList1)
+            {
+                _senderAwaitingACKsProducerList = _senderAwaitingACKsClientsList2;
+            }
+            else
+            {
+                _senderAwaitingACKsProducerList = _senderAwaitingACKsClientsList1;
+            }
+        }
+
+        private void SwapAwaitingACKsConsumerList()
+        {
+            if (_senderAwaitingACKsConsumerList == _senderAwaitingACKsClientsList1)
+            {
+                _senderAwaitingACKsConsumerList = _senderAwaitingACKsClientsList2;
+            }
+            else
+            {
+                _senderAwaitingACKsConsumerList = _senderAwaitingACKsClientsList1;
+            }
+        }
+
+        public void SwapAwaitingACKsProducerConsumer()
+        {
+            lock (senderAwaitingACKsProducerLock)
+            {
+                lock (senderAwaitingACKsConsumerLock)
+                {
+                    SwapAwaitingACKsProducerList();
+                    SwapAwaitingACKsConsumerList();
                 }
             }
         }
