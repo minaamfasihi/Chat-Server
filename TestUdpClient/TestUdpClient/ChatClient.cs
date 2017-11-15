@@ -53,15 +53,17 @@ namespace TestUdpClient
         private static AutoResetEvent cleanerSendQueue = new AutoResetEvent(false);
         private static AutoResetEvent cleanerReceiveQueue = new AutoResetEvent(false);
         private static AutoResetEvent partialCleanerSendBuffer = new AutoResetEvent(false);
+        private static AutoResetEvent processSendACKsBuffer = new AutoResetEvent(false);
 
         private static LogWriter logger = Logger.Instance;
 
-        private static System.Timers.Timer sendTimer;
+        private static System.Timers.Timer awaitingSendACKsTimer;
         private static System.Timers.Timer receiveTimer;
         private static System.Timers.Timer aTimer;
 
         private static object syncSendBuffer = new object();
         private static object syncReceiveBuffer = new object();
+        private static object processSendACKBufferLock = new object();
 
         private static string serverIPAddress;
         private static string LBIPAddress;
@@ -289,6 +291,7 @@ namespace TestUdpClient
 
         private void ProcessSendBuffer()
         {
+            SortedDictionary<int, byte[]> sd;
             while (true)
             {
                 processSendQueue.WaitOne();
@@ -306,11 +309,13 @@ namespace TestUdpClient
 
                     if (client.ConsumerSendBuffer.Count != 0)
                     {
-                        foreach (KeyValuePair<int, byte[]> kvp in client.ConsumerSendBuffer)
+                        sd = new SortedDictionary<int, byte[]>(client.ConsumerSendBuffer);
+                        foreach (KeyValuePair<int, byte[]> kvp in sd)
                         {
                             client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
                             client.MoveFromConsumerSendToACKBuffer(kvp.Key, kvp.Value);
                         }
+                        processSendACKsBuffer.Set();
                     }
                     client.ConsumerSendBuffer.Clear();
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
@@ -389,8 +394,8 @@ namespace TestUdpClient
                 {
                     latestSendPktACKED = receivedData.SequenceNumber;
                     Console.WriteLine("ACK Packet: " + receivedData.SequenceNumber + " " + receivedData.ChatMessage);
-                    //client.LastIncomingACKForSend = receivedData.SequenceNumber;
-                    //partialCleanerSendBuffer.Set();
+                    client.LastIncomingACKForSend = receivedData.SequenceNumber;
+                    partialCleanerSendBuffer.Set();
                 }
                 else
                 {
@@ -415,10 +420,8 @@ namespace TestUdpClient
                     }
                 }
 
-                // Reset data stream
                 client.ResetDataStream();
 
-                // Continue listening for more messages
                 client.socket.BeginReceiveFrom(client.DataStream, 0, client.DataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), null);
             }
             catch (ObjectDisposedException)
@@ -474,7 +477,10 @@ namespace TestUdpClient
             while (true)
             {
                 partialCleanerSendBuffer.WaitOne();
-                client.CleanAwaitingACKsSendBuffer();
+                lock (processSendACKBufferLock)
+                {
+                    client.CleanAwaitingACKsSendBuffer();
+                }
             }
         }
 
@@ -538,20 +544,31 @@ namespace TestUdpClient
             }
         }
 
-        //private static void CheckSendBuffer(object o, ElapsedEventArgs e)
-        //{
-        //    if (sendMessageBuffer.Count != 0)
-        //    {
-        //        processSendQueue.Set();
-        //    }
-        //}
-
-        private void ResendMechanism()
+        private void ResendSendACKsBuffer()
         {
-            //sendTimer = new System.Timers.Timer(1000);
-            //sendTimer.Elapsed += CheckSendBuffer;
-            //sendTimer.AutoReset = true;
-            //sendTimer.Enabled = true;
+            SortedDictionary<int, byte[]> sd;
+            while (true)
+            {
+                Thread.Sleep(5000);
+
+                lock (processSendACKBufferLock)
+                {
+                    sd = new SortedDictionary<int, byte[]>(client.AwaitingSendACKsBuffer);
+                }
+
+                if (sd.Count == 0)
+                {
+                    processSendACKsBuffer.WaitOne();
+                }
+
+                if (sd.Count != 0)
+                {
+                    foreach (KeyValuePair<int, byte[]> kvp in sd)
+                    {
+                        client.socket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendData), client.socket);
+                    }
+                }
+            }
         }
 
         private int getCurrentSendWindowSize()
@@ -607,6 +624,7 @@ namespace TestUdpClient
             aTimer.Enabled = true;
         }
 
+
         static void Main(string[] args)
         {
             try
@@ -625,7 +643,7 @@ namespace TestUdpClient
                 t2.Start();
                 Thread t3 = new Thread(chatClient.ProcessReceiveQueue);
                 t3.Start();
-                Thread t4 = new Thread(chatClient.ResendMechanism);
+                Thread t4 = new Thread(chatClient.ResendSendACKsBuffer);
                 t4.Start();
                 Thread t5 = new Thread(chatClient.CleanSendQueue);
                 t5.Start();

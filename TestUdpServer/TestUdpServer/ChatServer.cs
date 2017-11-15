@@ -19,7 +19,6 @@ namespace TestUdpServer
     {
         #region Private Members
         private static Socket LBConnectorSocket;
-        public static Hashtable clientsList = new Hashtable();
         private static ArrayList serversList = new ArrayList();
         public static Hashtable recipientClients = new Hashtable();
         private Socket serverSocket;
@@ -47,7 +46,7 @@ namespace TestUdpServer
         private static EndPoint epSender;
         private static AutoResetEvent processSendEvent = new AutoResetEvent(false);
         private static AutoResetEvent processBroadcastEvent = new AutoResetEvent(false);
-        private static AutoResetEvent sendACKEvent = new AutoResetEvent(false);
+        private static AutoResetEvent processSendACKBufferEvent = new AutoResetEvent(false);
         private static AutoResetEvent receiveDataEvent = new AutoResetEvent(false);
         private static LogWriter logger = Logger.Instance;
         private object clientBufferLock = new object();
@@ -268,13 +267,9 @@ namespace TestUdpServer
                 string logMsg = DateTime.Now + ":\t In ReceiveData()";
                 logger.Log(logMsg);
                 numOfPktsReceived++;
-                // Initialise a packet object to store the received data
                 tempReceiveBuffer.Enqueue(this.dataStream);
-                // Initialise the IPEndPoint for the clients
                 IPEndPoint clients = new IPEndPoint(IPAddress.Any, 0);
-                // Initialise the EndPoint for the clients
                 epSender = (EndPoint)clients;
-                // Receive all data
                 serverSocket.EndReceiveFrom(asyncResult, ref epSender);
                 receiveDataEvent.Set();
             }
@@ -323,6 +318,9 @@ namespace TestUdpServer
                                     sendData.SenderName = receivedData.SenderName;
                                     sendData.RecipientName = receivedData.RecipientName;
 
+                                    Console.WriteLine("Message: {0}", sendData.ChatMessage);
+                                    Console.WriteLine("Recipient: {0}", sendData.RecipientName);
+                                    Console.WriteLine("Sender: {0}", sendData.SenderName);
                                     if (clientBuffers.ContainsKey(receivedData.SenderName))
                                     {
                                         currentClient = clientBuffers[receivedData.SenderName];
@@ -330,7 +328,7 @@ namespace TestUdpServer
                                         if (!currentClient.ProducerSendBuffer.ContainsKey(receivedData.SequenceNumber) ||
                                             !currentClient.ConsumerSendBuffer.ContainsKey(receivedData.SequenceNumber) ||
                                             !currentClient.AwaitingSendACKsBuffer.ContainsKey(receivedData.SequenceNumber)
-                                            )
+                                           )
                                         {
                                             currentClient.InsertInSendBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
                                             senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
@@ -361,33 +359,11 @@ namespace TestUdpServer
                                     clientBuffers.TryAdd(client.Name, client);
                                 }
 
-                                if (!clientsList.ContainsKey(client.Name.ToLower()))
-                                {
-                                    clientsList.Add(client.Name.ToLower(), client);
-                                }
-
                                 client.EpSender = epSender;
                                 sendData.ChatMessage = string.Format("-- {0} is online --", receivedData.SenderName);
                                 break;
 
                             case DataIdentifier.LogOut:
-                                foreach (DictionaryEntry dict in clientsList)
-                                {
-                                    if (clientsList.ContainsKey(receivedData.SenderName))
-                                    {
-                                        clientsList.Remove(receivedData.SenderName);
-                                        break;
-                                    }
-                                }
-
-                                if (clientsList.ContainsKey(receivedData.SenderName))
-                                {
-                                    Console.WriteLine(receivedData.SenderName + " has not been removed");
-                                }
-                                else
-                                {
-                                    Console.WriteLine(receivedData.SenderName + " has been removed");
-                                }
                                 sendData.ChatMessage = string.Format("-- {0} has gone offline --", receivedData.SenderName);
                                 break;
                         }
@@ -450,30 +426,69 @@ namespace TestUdpServer
                             clientObj.SwapSendBuffers();
                             SendACKToClient(clientName);
 
-                            //if (clientObj.ConsumerSendBuffer.Any())
-                            //{
-                            //    int startInd = clientObj.ConsumerSendBuffer.Keys.First();
-                            //    int lastInd = clientObj.ConsumerSendBuffer.Keys.Last();
+                            if (clientObj.ConsumerSendBuffer.Any())
+                            {
+                                int startInd = clientObj.ConsumerSendBuffer.Keys.First();
+                                int lastInd = clientObj.ConsumerSendBuffer.Keys.Last();
 
-                            //    for (int i = startInd; clientObj.ConsumerSendBuffer.Any() && i <= lastInd; i++)
-                            //    {
-                            //        if (clientObj.ConsumerSendBuffer.ContainsKey(i))
-                            //        {
-                            //            Packet pkt = new Packet(clientObj.ConsumerSendBuffer[i]);
-                            //            RelayMessage(pkt);
-                            //            clientObj.MoveFromConsumerSendToACKBuffer(pkt.SequenceNumber, pkt.GetDataStream());
-                            //        }
-                            //    }
-                            //}
-
+                                for (int i = startInd; clientObj.ConsumerSendBuffer.Any() && i <= lastInd; i++)
+                                {
+                                    if (clientObj.ConsumerSendBuffer.ContainsKey(i))
+                                    {
+                                        Packet pkt = new Packet(clientObj.ConsumerSendBuffer[i]);
+                                        RelayMessage(pkt);
+                                        clientObj.MoveFromConsumerSendToACKBuffer(pkt.SequenceNumber, pkt.GetDataStream());
+                                    }
+                                }
+                            }
+                            senderClientsObject.InsertInSenderClientsAwaitingACKsProducerList(clientName);
+                            if (clientObj.CheckIfProducerConsumerSendEmpty())
+                            {
+                                senderClientsObject.RemoveFromProducerConsumerSendList(clientName);
+                            }
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.ToString());
                     logMsg = e.ToString();
                     logger.Log(logMsg);
+                }
+            }
+        }
+
+        private void ProcessSendACKsBuffer()
+        {
+            SortedDictionary<int, byte[]> sd;
+            Client clientObj2;
+
+            while (true)
+            {
+                Thread.Sleep(1000);
+
+                if (senderClientsObject.SenderAwaitingACKsConsumerList.Count == 0)
+                {
+                    processSendACKBufferEvent.WaitOne();
+                }
+
+                if (senderClientsObject.SenderAwaitingACKsConsumerList.Count != 0)
+                {
+                    foreach (string c in senderClientsObject.SenderAwaitingACKsConsumerList)
+                    {
+                        if (clientBuffers.ContainsKey(c))
+                        {
+                            clientObj2 = clientBuffers[c];
+                            sd = clientObj2.ReturnCopyOfSendACKBuffer();
+                            
+                            if (sd.Count != 0)
+                            {
+                                foreach (KeyValuePair<int, byte[]> kvp in sd)
+                                {
+                                    serverSocket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, clientObj2.EpSender, new AsyncCallback(SendData), clientObj2.socket);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -532,7 +547,7 @@ namespace TestUdpServer
             string logMsg = DateTime.Now + ":\t In SendMessageToClient()";
             logger.Log(logMsg);
             byte[] data = sendData.GetDataStream();
-            Client recipient = (Client)clientsList[sendData.RecipientName];
+            Client recipient = clientBuffers[sendData.RecipientName];
             serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.EpSender, new AsyncCallback(SendData), recipient.socket);
             logMsg = DateTime.Now + ":\t Exiting SendMessageToClient()";
             logger.Log(logMsg);
@@ -544,7 +559,7 @@ namespace TestUdpServer
             logger.Log(logMsg);
             if (sendData.RecipientName != null)
             {
-                if (clientsList.ContainsKey(sendData.RecipientName))
+                if (clientBuffers.ContainsKey(sendData.RecipientName))
                 {
                     SendMessageToClient(sendData);
                     numOfPktsSent++;
@@ -579,7 +594,7 @@ namespace TestUdpServer
 
         private void SendACKToClient(string clientName, SortedDictionary<int, byte[]> sd)
         {
-            if (clientsList.ContainsKey(clientName))
+            if (clientBuffers.ContainsKey(clientName))
             {
                 Packet sendData = new Packet();
                 Client recipient;
@@ -602,7 +617,7 @@ namespace TestUdpServer
 
                     sendData.SequenceNumber = lastValidSeqNum;
                     byte[] data = sendData.GetDataStream();
-                    recipient = (Client)clientsList[clientName];
+                    recipient = clientBuffers[clientName];
                     serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient.EpSender, new AsyncCallback(SendData), recipient.socket);
                 }
             }
