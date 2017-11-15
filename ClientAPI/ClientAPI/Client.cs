@@ -360,11 +360,36 @@ namespace ClientAPI
             }
         }
 
-        public void RemoveFromSendBuffer(int sequenceNumber)
+        public bool CheckIfProducerConsumerSendEmpty()
         {
-            if (ProducerSendBuffer.ContainsKey(sequenceNumber))
+            lock (lockConsumerBuffer)
             {
                 lock (lockProducerBuffer)
+                {
+                    if (_consumerSendBuffer.Count == 0 && _producerSendBuffer.Count == 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public SortedDictionary<int, byte[]> ReturnCopyOfSendACKBuffer()
+        {
+            SortedDictionary<int, byte[]> sd;
+            lock (lockAwaitingACKsSendBuffer)
+            {
+                sd = new SortedDictionary<int, byte[]>(AwaitingSendACKsBuffer);
+            }
+            return sd;
+        }
+
+        public void RemoveFromSendBuffer(int sequenceNumber)
+        {
+            lock (lockProducerBuffer)
+            {
+                if (ProducerSendBuffer.ContainsKey(sequenceNumber))
                 {
                     _producerSendBuffer.Remove(sequenceNumber);
                 }
@@ -373,9 +398,9 @@ namespace ClientAPI
 
         public void RemoveFromBroadcastBuffer(int sequenceNumber)
         {
-            if (ProducerBroadcastBuffer.ContainsKey(sequenceNumber))
+            lock (lockBroadcastProducerBuffer)
             {
-                lock (lockBroadcastProducerBuffer)
+                if (ProducerBroadcastBuffer.ContainsKey(sequenceNumber))
                 {
                     _producerBroadcastBuffer.Remove(sequenceNumber);
                 }
@@ -384,33 +409,33 @@ namespace ClientAPI
 
         public void CleanAwaitingACKsSendBuffer()
         {
-            if (_awaitingSendACKsBuffer.Count != 0)
+            lock (lockAwaitingACKsSendBuffer)
             {
-                for (int i = _awaitingSendACKsBuffer.Keys.First(); (_awaitingSendACKsBuffer.Count != 0) && i < _lastIncomingACKForSend; i++)
+                if (_awaitingSendACKsBuffer.Count != 0)
                 {
-                    if (_awaitingSendACKsBuffer.ContainsKey(i))
+                    for (int i = _awaitingSendACKsBuffer.Keys.First(); (_awaitingSendACKsBuffer.Count != 0) && i < _lastIncomingACKForSend; i++)
                     {
-                        lock (lockAwaitingACKsSendBuffer)
+                        if (_awaitingSendACKsBuffer.ContainsKey(i))
                         {
                             _awaitingSendACKsBuffer.Remove(i);
                         }
+                        else break;
                     }
-                    else break;
                 }
             }
 
-            if (_awaitingBroadcastACKsBuffer.Count != 0)
+            lock (lockAwaitingACKsBroadcastBuffer)
             {
-                for (int i = _awaitingBroadcastACKsBuffer.Keys.First(); (_awaitingBroadcastACKsBuffer.Count != 0) && i < _lastIncomingACKForBroadcast; i++)
+                if (_awaitingBroadcastACKsBuffer.Count != 0)
                 {
-                    if (_awaitingBroadcastACKsBuffer.ContainsKey(i))
+                    for (int i = _awaitingBroadcastACKsBuffer.Keys.First(); (_awaitingBroadcastACKsBuffer.Count != 0) && i < _lastIncomingACKForBroadcast; i++)
                     {
-                        lock (lockAwaitingACKsBroadcastBuffer)
+                        if (_awaitingBroadcastACKsBuffer.ContainsKey(i))
                         {
                             _awaitingBroadcastACKsBuffer.Remove(i);
                         }
+                        else break;
                     }
-                    else break;
                 }
             }
         }
