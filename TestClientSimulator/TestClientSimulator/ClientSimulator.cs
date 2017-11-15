@@ -617,11 +617,10 @@ namespace TestClientSimulator
                     {
                         if (sentACKEDSequenceNumbers.Contains(dict.Key))
                         {
-                            dict.Value.CleanSendQueue();
+                            //dict.Value.CleanSendQueue();
                         }
                     }
                 }
-                //throttleSender.Set();
             }
         }
 

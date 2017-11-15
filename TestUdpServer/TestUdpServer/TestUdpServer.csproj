@@ -57,6 +57,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClientsList.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="ChatServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
