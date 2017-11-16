@@ -449,8 +449,6 @@ namespace TestUdpServer
                             //{
                             //    senderClientsObject.RemoveFromProducerConsumerSendList(clientName);
                             //}
-                            processSendACKBufferEvent.Set();
-
                             clientObj.SwapBroadcastBuffers();
                             if (clientObj.ConsumerBroadcastBuffer.Count != 0)
                             {
@@ -460,7 +458,24 @@ namespace TestUdpServer
                                 p.SequenceNumber = clientObj.GetLastConsecutiveSequenceNumber(clientObj.ConsumerBroadcastBuffer, true);
                                 p.ChatDataIdentifier = DataIdentifier.Broadcast;
                                 BroadcastToAllServers(p);
+
+                                if (clientObj.ConsumerBroadcastBuffer.Count != 0)
+                                {
+                                    int startInd = clientObj.ConsumerBroadcastBuffer.Keys.First();
+                                    int lastInd = clientObj.ConsumerBroadcastBuffer.Keys.Last();
+
+                                    for (int i = startInd; clientObj.ConsumerBroadcastBuffer.Count != 0 && i <= lastInd; i++)
+                                    {
+                                        if (clientObj.ConsumerBroadcastBuffer.ContainsKey(i))
+                                        {
+                                            Packet pkt = new Packet(clientObj.ConsumerBroadcastBuffer[i]);
+                                            RelayMessage(pkt);
+                                            clientObj.MoveFromConsumerBroadcastToACKBuffer(pkt.SequenceNumber, pkt.GetDataStream());
+                                        }
+                                    }
+                                }
                             }
+                            processSendACKBufferEvent.Set();
                         }
                     }
                     senderClientsObject.SwapProducerConsumerList();
@@ -525,7 +540,7 @@ namespace TestUdpServer
 
                     if (recipient.ToString() != serverSocket.LocalEndPoint.ToString())
                     {
-                        serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient, new AsyncCallback(BroadcastToServersCallback), serverSocket);
+                        serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient, new AsyncCallback(BroadcastToServersCallback), null);
                     }
                 }
             }
@@ -547,7 +562,6 @@ namespace TestUdpServer
                 logger.Log(logMsg);
                 Socket s = (Socket)ar.AsyncState;
                 s.EndSend(ar);
-                Packet receivedData = new Packet(this.dataStream);
             }
             catch (Exception e)
             {
