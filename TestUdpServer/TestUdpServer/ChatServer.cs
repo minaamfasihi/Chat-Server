@@ -540,7 +540,7 @@ namespace TestUdpServer
 
                     if (recipient.ToString() != serverSocket.LocalEndPoint.ToString())
                     {
-                        serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient, new AsyncCallback(BroadcastToServersCallback), null);
+                        serverSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, recipient, new AsyncCallback(BroadcastToServersCallback), serverSocket);
                     }
                 }
             }
