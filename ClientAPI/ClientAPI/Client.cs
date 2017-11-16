@@ -390,7 +390,7 @@ namespace ClientAPI
             return lastSeqNum;
         }
 
-        public int GetLastConsecutiveSequenceNumber(SortedDictionary<int, byte[]> sd, bool isBroadcast = true)
+        public int GetLastConsecutiveSequenceNumber(SortedDictionary<int, byte[]> sd, bool isBroadcast = false)
         {
             if (isBroadcast)
             {

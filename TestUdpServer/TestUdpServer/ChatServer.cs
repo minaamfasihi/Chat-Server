@@ -457,9 +457,9 @@ namespace TestUdpServer
                                 Packet p = new Packet();
                                 p.SenderName = clientName;
                                 p.RecipientName = "Server";
-
-                                p.SequenceNumber = clientObj.GetLastConsecutiveSequenceNumber(clientObj.ConsumerBroadcastBuffer);
+                                p.SequenceNumber = clientObj.GetLastConsecutiveSequenceNumber(clientObj.ConsumerBroadcastBuffer, true);
                                 p.ChatDataIdentifier = DataIdentifier.Broadcast;
+                                BroadcastToAllServers(p);
                             }
                         }
                     }
