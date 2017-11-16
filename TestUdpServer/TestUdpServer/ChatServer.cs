@@ -177,7 +177,7 @@ namespace TestUdpServer
             }
             logMsg = DateTime.Now + "\t---Updating new server with existing servers information---";
             logger.Log(logMsg);
-            allDone.Set();
+            //allDone.Set();
             logMsg = DateTime.Now + ":\t Exiting updateNewServer()";
             logger.Log(logMsg);
         }
@@ -208,7 +208,6 @@ namespace TestUdpServer
             logger.Log(logMsg);
             try
             {
-                allDone.Set();
                 while (true)
                 {
                     allDone.WaitOne();
@@ -308,6 +307,9 @@ namespace TestUdpServer
                             case DataIdentifier.Broadcast:
                                 if (receivedData.ChatMessage == "ACK")
                                 {
+                                    Console.WriteLine("ACK: {0}", receivedData.ChatMessage);
+                                    Console.WriteLine("Sender: {0}", receivedData.SenderName);
+                                    Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
                                     PartialCleanUpSendBuffer(receivedData);
                                 }
                                 else
@@ -442,13 +444,14 @@ namespace TestUdpServer
                                 }
                             }
                             senderClientsObject.InsertInSenderClientsAwaitingACKsProducerList(clientName);
-                            if (clientObj.CheckIfProducerConsumerSendEmpty())
-                            {
-                                senderClientsObject.RemoveFromProducerConsumerSendList(clientName);
-                            }
+                            //if (clientObj.CheckIfProducerConsumerSendEmpty())
+                            //{
+                            //    senderClientsObject.RemoveFromProducerConsumerSendList(clientName);
+                            //}
                             processSendACKBufferEvent.Set();
                         }
                     }
+                    senderClientsObject.SwapProducerConsumerList();
                 }
                 catch (Exception e)
                 {
@@ -660,7 +663,7 @@ namespace TestUdpServer
             //Thread t5 = new Thread(server.SendACKToClient);
             //t5.Start();
             Thread t6 = new Thread(server.ProcessReceiveData);
-            //t6.Start();
+            t6.Start();
             //Thread t7 = new Thread();
             server.StartListening();
             t1.Join();

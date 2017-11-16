@@ -57,7 +57,7 @@ namespace TestUdpClient
 
         private static LogWriter logger = Logger.Instance;
 
-        private static System.Timers.Timer awaitingSendACKsTimer;
+        //private static System.Timers.Timer awaitingSendACKsTimer;
         private static System.Timers.Timer receiveTimer;
         private static System.Timers.Timer aTimer;
 
@@ -284,7 +284,6 @@ namespace TestUdpClient
                 {
                     logMsg = DateTime.Now + ":\t " + e.ToString();
                     logger.Log(logMsg);
-                    throw;
                 }
             }
         }
@@ -401,26 +400,12 @@ namespace TestUdpClient
                 {
                     if (receivedData.SenderName != "LoadBalancer")
                     {
-                        Console.WriteLine("Message: {0}", receivedData.ChatMessage);
-                        Console.WriteLine("Sender: {0}", receivedData.SenderName);
-                        Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
-
                         if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
                         {
                             client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
                             SendACKToServer();
                             processReceiveQueue.Set();
                         }
-
-                        //if (currentReceiveWindowHasSpace() && liesInRangeForReceive(receivedData.SequenceNumber))
-                        //{
-                        //    if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
-                        //    {
-                        //        receiveMessageBuffer[receivedData.SequenceNumber] = receivedData;
-                        //        SendACKToServer();
-                        //        processReceiveQueue.Set();
-                        //    }
-                        //}
                     }
                 }
 
@@ -628,7 +613,6 @@ namespace TestUdpClient
             aTimer.Enabled = true;
         }
 
-
         static void Main(string[] args)
         {
             try
@@ -648,7 +632,7 @@ namespace TestUdpClient
                 Thread t3 = new Thread(chatClient.ProcessReceiveQueue);
                 t3.Start();
                 Thread t4 = new Thread(chatClient.ResendSendACKsBuffer);
-                t4.Start();
+                //t4.Start();
                 Thread t5 = new Thread(chatClient.CleanSendQueue);
                 t5.Start();
                 Thread t6 = new Thread(chatClient.MessageProductionRate);
