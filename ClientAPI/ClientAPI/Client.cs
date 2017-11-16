@@ -375,6 +375,39 @@ namespace ClientAPI
             return false;
         }
 
+        private int LastConsecutiveSequenceNumber(SortedDictionary<int, byte[]> sd)
+        {
+            int lastSeqNum = 0;
+
+            for (int i = sd.Keys.First(); sd.Any() && i <= sd.Keys.Last(); i++)
+            {
+                if (sd.ContainsKey(i))
+                {
+                    lastSeqNum++;
+                }
+                else break;
+            }
+            return lastSeqNum;
+        }
+
+        public int GetLastConsecutiveSequenceNumber(SortedDictionary<int, byte[]> sd, bool isBroadcast = true)
+        {
+            if (isBroadcast)
+            {
+                lock (lockBroadcastConsumerBuffer)
+                {
+                    return LastConsecutiveSequenceNumber(sd);
+                }
+            }
+            else
+            {
+                lock (lockConsumerBuffer)
+                {
+                    return LastConsecutiveSequenceNumber(sd);
+                }
+            }
+        }
+
         public SortedDictionary<int, byte[]> ReturnCopyOfSendACKBuffer()
         {
             SortedDictionary<int, byte[]> sd;

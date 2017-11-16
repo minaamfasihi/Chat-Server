@@ -334,7 +334,7 @@ namespace TestUdpServer
                                         {
                                             currentClient.InsertInSendBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
                                             senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
-                                            processSendEvent.Set();
+                                            //processSendEvent.Set();
                                         }
                                     }
                                     else if (clientBuffers.ContainsKey(receivedData.RecipientName) && receivedData.ChatDataIdentifier == DataIdentifier.Broadcast)
@@ -346,10 +346,11 @@ namespace TestUdpServer
                                         {
                                             currentClient.InsertInBroadcastBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
                                             senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
-                                            processSendEvent.Set();
+                                            //processSendEvent.Set();
                                         }
                                     }
                                 }
+                                processSendEvent.Set();
                                 break;
 
                             case DataIdentifier.LogIn:
@@ -449,6 +450,17 @@ namespace TestUdpServer
                             //    senderClientsObject.RemoveFromProducerConsumerSendList(clientName);
                             //}
                             processSendACKBufferEvent.Set();
+
+                            clientObj.SwapBroadcastBuffers();
+                            if (clientObj.ConsumerBroadcastBuffer.Count != 0)
+                            {
+                                Packet p = new Packet();
+                                p.SenderName = clientName;
+                                p.RecipientName = "Server";
+
+                                p.SequenceNumber = clientObj.GetLastConsecutiveSequenceNumber(clientObj.ConsumerBroadcastBuffer);
+                                p.ChatDataIdentifier = DataIdentifier.Broadcast;
+                            }
                         }
                     }
                     senderClientsObject.SwapProducerConsumerList();

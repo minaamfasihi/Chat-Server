@@ -400,6 +400,9 @@ namespace TestUdpClient
                 {
                     if (receivedData.SenderName != "LoadBalancer")
                     {
+                        Console.WriteLine("Message: {0}", receivedData.ChatMessage);
+                        Console.WriteLine("Sender: {0}", receivedData.SenderName);
+                        Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
                         if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
                         {
                             client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
