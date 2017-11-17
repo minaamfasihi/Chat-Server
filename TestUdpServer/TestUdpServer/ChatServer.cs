@@ -177,7 +177,7 @@ namespace TestUdpServer
             }
             logMsg = DateTime.Now + "\t---Updating new server with existing servers information---";
             logger.Log(logMsg);
-            //allDone.Set();
+            allDone.Set();
             logMsg = DateTime.Now + ":\t Exiting updateNewServer()";
             logger.Log(logMsg);
         }
