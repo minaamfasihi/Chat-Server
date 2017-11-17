@@ -456,7 +456,10 @@ namespace ClientAPI
                     }
                 }
             }
+        }
 
+        public void CleanAwaitingACKsBroadcastBuffer()
+        {
             lock (lockAwaitingACKsBroadcastBuffer)
             {
                 if (_awaitingBroadcastACKsBuffer.Count != 0)

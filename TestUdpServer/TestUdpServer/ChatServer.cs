@@ -384,26 +384,25 @@ namespace TestUdpServer
 
         private void PartialCleanUpSendBuffer(Packet pkt)
         {
-            string recipientName = pkt.RecipientName;
-            string senderName = pkt.SenderName;
-            int seqNumACKed = pkt.SequenceNumber;
-            SortedDictionary<int, byte[]> sortedDict = null;
+            Client c;
 
-            if (clientBuffers.ContainsKey(recipientName))
+            if (pkt.ChatDataIdentifier == DataIdentifier.Message)
             {
-                lock (clientBufferLock)
+                if (clientBuffers.ContainsKey(pkt.RecipientName))
                 {
-                    sortedDict = clientBuffers[recipientName].ConsumerSendBuffer;
-                    if (sortedDict != null && sortedDict.Count != 0)
-                    {
-                        for (int i = sortedDict.Keys.First(); sortedDict.Any() && i <= sortedDict.Keys.Last(); i++)
-                        {
-                            if (sortedDict.ContainsKey(i) && i < seqNumACKed)
-                            {
-                                sortedDict.Remove(i);
-                            }
-                        }
-                    }
+                    c = clientBuffers[pkt.RecipientName];
+                    c.LastIncomingACKForSend = pkt.SequenceNumber;
+                    c.CleanAwaitingACKsSendBuffer();
+                }
+            }
+            
+            else if (pkt.ChatDataIdentifier == DataIdentifier.Broadcast)
+            {
+                if (clientBuffers.ContainsKey(pkt.SenderName))
+                {
+                    c = clientBuffers[pkt.SenderName];
+                    c.LastIncomingACKForBroadcast = pkt.SequenceNumber;
+                    c.CleanAwaitingACKsBroadcastBuffer();
                 }
             }
         }

@@ -391,22 +391,30 @@ namespace TestUdpClient
                 Packet receivedData = new Packet(client.DataStream);
                 if (receivedData.ChatMessage == "ACK")
                 {
-                    latestSendPktACKED = receivedData.SequenceNumber;
                     Console.WriteLine("ACK Packet: " + receivedData.SequenceNumber + " " + receivedData.ChatMessage);
-                    client.LastIncomingACKForSend = receivedData.SequenceNumber;
+
+                    if (receivedData.ChatDataIdentifier == DataIdentifier.Message && 
+                       client.LastIncomingACKForSend < receivedData.SequenceNumber)
+                    {
+                        client.LastIncomingACKForSend = receivedData.SequenceNumber;
+                    }
+
+                    else if (receivedData.ChatDataIdentifier == DataIdentifier.Broadcast &&
+                             client.LastIncomingACKForBroadcast < receivedData.SequenceNumber)
+                    {
+                        client.LastIncomingACKForBroadcast = receivedData.SequenceNumber;
+                    }
+                    
                     partialCleanerSendBuffer.Set();
                 }
                 else
                 {
                     if (receivedData.SenderName != "LoadBalancer")
                     {
-                        Console.WriteLine("Message: {0}", receivedData.ChatMessage);
-                        Console.WriteLine("Sender: {0}", receivedData.SenderName);
-                        Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
                         if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
                         {
                             client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
-                            SendACKToServer();
+                            SendACKToServer(receivedData);
                             processReceiveQueue.Set();
                         }
                     }
@@ -428,7 +436,7 @@ namespace TestUdpClient
             logger.Log(logMsg);
         }
 
-        private void SendACKToServer()
+        private void SendACKToServer(Packet pkt)
         {
             string logMsg = DateTime.Now + ":\t In SendACKToServer()";
             logger.Log(logMsg);
@@ -442,7 +450,8 @@ namespace TestUdpClient
                 sendData.ChatMessage = "ACK";
                 sendData.RecipientName = client.FriendName;
                 sendData.SenderName = client.Name;
-                sendData.ChatDataIdentifier = DataIdentifier.Message;
+                sendData.ChatDataIdentifier = pkt.ChatDataIdentifier == DataIdentifier.Broadcast ?
+                                                DataIdentifier.Broadcast : DataIdentifier.Message;
 
                 for (int i = sortedDict.Keys.First(); i <= sortedDict.Keys.Last(); i++)
                 {
@@ -469,10 +478,8 @@ namespace TestUdpClient
             while (true)
             {
                 partialCleanerSendBuffer.WaitOne();
-                lock (processSendACKBufferLock)
-                {
-                    client.CleanAwaitingACKsSendBuffer();
-                }
+                client.CleanAwaitingACKsSendBuffer();
+                client.CleanAwaitingACKsBroadcastBuffer();
             }
         }
 
