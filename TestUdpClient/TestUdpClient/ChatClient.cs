@@ -415,6 +415,13 @@ namespace TestUdpClient
                         {
                             client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
                             SendACKToServer(receivedData);
+                            Console.WriteLine("Sizes: \n");
+                            Console.WriteLine("Consumer Send Buffer: {0}", client.ConsumerSendBuffer.Count);
+                            Console.WriteLine("Consumer Broadcast Buffer: {0}", client.ConsumerBroadcastBuffer.Count);
+                            Console.WriteLine("Awaiting ACKS for Send Buffer: {0}", client.AwaitingSendACKsBuffer.Count);
+                            Console.WriteLine("Producer Send Buffer: {0}", client.ProducerSendBuffer.Count);
+                            Console.WriteLine("Producer Broadcast Buffer: {0}", client.ProducerBroadcastBuffer.Count);
+                            Console.WriteLine("Awaiting ACKS for Broadcast Buffer: {0}", client.AwaitingBroadcastACKsBuffer.Count);
                             processReceiveQueue.Set();
                         }
                     }

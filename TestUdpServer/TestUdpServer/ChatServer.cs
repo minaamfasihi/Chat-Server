@@ -310,11 +310,12 @@ namespace TestUdpServer
                                     Console.WriteLine("ACK: {0}", receivedData.ChatMessage);
                                     Console.WriteLine("Sender: {0}", receivedData.SenderName);
                                     Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
+                                    Console.WriteLine("DataIdentifier: {0}", receivedData.ChatDataIdentifier);
                                     PartialCleanUpSendBuffer(receivedData);
                                 }
                                 else
                                 {
-                                    string senderName = receivedData.SenderName.ToLower();
+                                    string senderName = receivedData.SenderName;
                                     sendData.ChatMessage = receivedData.ChatMessage;
                                     sendData.ChatDataIdentifier = receivedData.ChatDataIdentifier;
                                     sendData.SenderName = receivedData.SenderName;
@@ -333,8 +334,19 @@ namespace TestUdpServer
                                            )
                                         {
                                             currentClient.InsertInSendBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
-                                            senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
-                                            //processSendEvent.Set();
+                                            //senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
+
+                                            Console.WriteLine("****************");
+                                            Console.WriteLine("Sizes: \n");
+                                            Console.WriteLine("Name: {0}", currentClient.Name);
+                                            Console.WriteLine("Friend Name: {0}", currentClient.FriendName);
+                                            Console.WriteLine("Consumer Send Buffer: {0}", currentClient.ConsumerSendBuffer.Count);
+                                            Console.WriteLine("Consumer Broadcast Buffer: {0}", currentClient.ConsumerBroadcastBuffer.Count);
+                                            Console.WriteLine("Awaiting ACKS for Send Buffer: {0}", currentClient.AwaitingSendACKsBuffer.Count);
+                                            Console.WriteLine("Producer Send Buffer: {0}", currentClient.ProducerSendBuffer.Count);
+                                            Console.WriteLine("Producer Broadcast Buffer: {0}", currentClient.ProducerBroadcastBuffer.Count);
+                                            Console.WriteLine("Awaiting ACKS for Broadcast Buffer: {0}", currentClient.AwaitingBroadcastACKsBuffer.Count);
+                                            Console.WriteLine("################");
                                         }
                                     }
                                     else if (clientBuffers.ContainsKey(receivedData.RecipientName) && receivedData.ChatDataIdentifier == DataIdentifier.Broadcast)
@@ -345,9 +357,20 @@ namespace TestUdpServer
                                             !currentClient.AwaitingBroadcastACKsBuffer.ContainsKey(receivedData.SequenceNumber))
                                         {
                                             currentClient.InsertInBroadcastBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
-                                            senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
-                                            //processSendEvent.Set();
+                                            //senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
                                         }
+
+                                        Console.WriteLine("****************");
+                                        Console.WriteLine("Sizes: \n");
+                                        Console.WriteLine("Name: {0}", currentClient.Name);
+                                        Console.WriteLine("Friend Name: {0}", currentClient.FriendName);
+                                        Console.WriteLine("Consumer Send Buffer: {0}", currentClient.ConsumerSendBuffer.Count);
+                                        Console.WriteLine("Consumer Broadcast Buffer: {0}", currentClient.ConsumerBroadcastBuffer.Count);
+                                        Console.WriteLine("Awaiting ACKS for Send Buffer: {0}", currentClient.AwaitingSendACKsBuffer.Count);
+                                        Console.WriteLine("Producer Send Buffer: {0}", currentClient.ProducerSendBuffer.Count);
+                                        Console.WriteLine("Producer Broadcast Buffer: {0}", currentClient.ProducerBroadcastBuffer.Count);
+                                        Console.WriteLine("Awaiting ACKS for Broadcast Buffer: {0}", currentClient.AwaitingBroadcastACKsBuffer.Count);
+                                        Console.WriteLine("################");
                                     }
                                 }
                                 processSendEvent.Set();
@@ -359,7 +382,10 @@ namespace TestUdpServer
 
                                 if (!clientBuffers.ContainsKey(client.Name))
                                 {
+                                    client.FriendName = receivedData.RecipientName;
                                     clientBuffers.TryAdd(client.Name, client);
+                                    senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
+                                    senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
                                 }
 
                                 client.EpSender = epSender;
@@ -385,7 +411,12 @@ namespace TestUdpServer
         private void PartialCleanUpSendBuffer(Packet pkt)
         {
             Client c;
-
+            Console.WriteLine("In Partial Clean Up Send Buffer");
+            Console.WriteLine("Recipient Name: {0}", pkt.RecipientName);
+            Console.WriteLine("Sender Name: {0}", pkt.SenderName);
+            Console.WriteLine("Sequence Number: {0}", pkt.SequenceNumber);
+            Console.WriteLine("Type: {0}", pkt.ChatDataIdentifier);
+            Console.WriteLine("Chat Message: {0}", pkt.ChatMessage);
             if (pkt.ChatDataIdentifier == DataIdentifier.Message)
             {
                 if (clientBuffers.ContainsKey(pkt.RecipientName))
@@ -398,9 +429,11 @@ namespace TestUdpServer
             
             else if (pkt.ChatDataIdentifier == DataIdentifier.Broadcast)
             {
-                if (clientBuffers.ContainsKey(pkt.SenderName))
+                if (clientBuffers.ContainsKey(pkt.RecipientName))
                 {
-                    c = clientBuffers[pkt.SenderName];
+                    c = clientBuffers[pkt.RecipientName];
+                    //c.LastIncomingACKForSend = pkt.SequenceNumber;
+                    //c.CleanAwaitingACKsSendBuffer();
                     c.LastIncomingACKForBroadcast = pkt.SequenceNumber;
                     c.CleanAwaitingACKsBroadcastBuffer();
                 }
@@ -444,16 +477,12 @@ namespace TestUdpServer
                                 }
                             }
                             senderClientsObject.InsertInSenderClientsAwaitingACKsProducerList(clientName);
-                            //if (clientObj.CheckIfProducerConsumerSendEmpty())
-                            //{
-                            //    senderClientsObject.RemoveFromProducerConsumerSendList(clientName);
-                            //}
                             clientObj.SwapBroadcastBuffers();
                             if (clientObj.ConsumerBroadcastBuffer.Count != 0)
                             {
                                 Packet p = new Packet();
                                 p.SenderName = clientName;
-                                p.RecipientName = "Server";
+                                p.RecipientName = clientObj.FriendName;
                                 p.SequenceNumber = clientObj.GetLastConsecutiveSequenceNumber(clientObj.ConsumerBroadcastBuffer, true);
                                 p.ChatDataIdentifier = DataIdentifier.Broadcast;
                                 BroadcastToAllServers(p);
