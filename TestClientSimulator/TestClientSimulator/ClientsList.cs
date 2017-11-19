@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TestUdpServer
+namespace TestClientSimulator
 {
     class ClientsList
     {
@@ -12,7 +12,7 @@ namespace TestUdpServer
         private List<string> _senderClientsConsumerList = null;
         private List<string> _senderClientsList1 = new List<string>();
         private List<string> _senderClientsList2 = new List<string>();
-        
+
         private static object senderClientsProducerLock = new object();
         private static object senderClientsConsumerLock = new object();
 
@@ -35,16 +35,13 @@ namespace TestUdpServer
 
         public void InsertInSenderClientsProducerList(string clientName)
         {
-            if (clientName != null)
+            lock (senderClientsProducerLock)
             {
-                lock (senderClientsProducerLock)
+                lock (senderClientsConsumerLock)
                 {
-                    lock (senderClientsConsumerLock)
+                    if (!_senderClientsProducerList.Contains(clientName) && !_senderClientsConsumerList.Contains(clientName))
                     {
-                        if (!_senderClientsProducerList.Contains(clientName) && !_senderClientsConsumerList.Contains(clientName))
-                        {
-                            _senderClientsProducerList.Add(clientName);
-                        }
+                        _senderClientsProducerList.Add(clientName);
                     }
                 }
             }
@@ -52,36 +49,30 @@ namespace TestUdpServer
 
         public void RemoveFromProducerConsumerSendList(string clientName)
         {
-            if (clientName != null)
+            lock (senderClientsProducerLock)
             {
-                lock (senderClientsProducerLock)
+                if (_senderClientsProducerList.Contains(clientName))
                 {
-                    if (_senderClientsProducerList.Contains(clientName))
-                    {
-                        _senderClientsProducerList.Remove(clientName);
-                    }
+                    _senderClientsProducerList.Remove(clientName);
                 }
+            }
 
-                lock (senderClientsConsumerLock)
+            lock (senderClientsConsumerLock)
+            {
+                if (_senderClientsConsumerList.Contains(clientName))
                 {
-                    if (_senderClientsConsumerList.Contains(clientName))
-                    {
-                        _senderClientsConsumerList.Contains(clientName);
-                    }
+                    _senderClientsConsumerList.Contains(clientName);
                 }
             }
         }
 
         public void InsertInSenderClientsAwaitingACKsProducerList(string clientName)
         {
-            if (clientName != null)
+            lock (senderAwaitingACKsProducerLock)
             {
-                lock (senderAwaitingACKsProducerLock)
+                if (!_senderAwaitingACKsProducerList.Contains(clientName))
                 {
-                    if (!_senderAwaitingACKsProducerList.Contains(clientName))
-                    {
-                        _senderAwaitingACKsProducerList.Add(clientName);
-                    }
+                    _senderAwaitingACKsProducerList.Add(clientName);
                 }
             }
         }
@@ -98,28 +89,22 @@ namespace TestUdpServer
 
         public void RemoveFromConsumerSendList(string clientName)
         {
-            if (clientName != null)
+            lock (senderClientsConsumerLock)
             {
-                lock (senderClientsConsumerLock)
+                if (_senderClientsConsumerList.Contains(clientName))
                 {
-                    if (_senderClientsConsumerList.Contains(clientName))
-                    {
-                        _senderClientsConsumerList.Remove(clientName);
-                    }
+                    _senderClientsConsumerList.Remove(clientName);
                 }
             }
         }
 
         public void RemoveFromConsumerSendAwaitingACKsList(string clientName)
         {
-            if (clientName != null)
+            lock (senderClientsConsumerLock)
             {
-                lock (senderClientsConsumerLock)
+                if (_senderClientsConsumerList.Contains(clientName))
                 {
-                    if (_senderClientsConsumerList.Contains(clientName))
-                    {
-                        _senderClientsConsumerList.Remove(clientName);
-                    }
+                    _senderClientsConsumerList.Remove(clientName);
                 }
             }
         }

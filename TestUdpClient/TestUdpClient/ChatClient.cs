@@ -19,7 +19,6 @@ namespace TestUdpClient
         private static Socket clientSocket;
         private static Socket LBClientSocket;
 
-
         private EndPoint epServer;
 
         private byte[] dataStream = new byte[1024];

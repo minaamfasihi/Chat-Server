@@ -21,3 +21,9 @@ C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClien
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.csproj.CoreCompileInputs.cache
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.exe
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.pdb
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\TestUdpClient\TestUdpClient\bin\Debug\TestUdpClient.exe.config
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\TestUdpClient\TestUdpClient\bin\Debug\TestUdpClient.exe
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\TestUdpClient\TestUdpClient\bin\Debug\TestUdpClient.pdb
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.csprojResolveAssemblyReference.cache
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.exe
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\TestUdpClient\TestUdpClient\obj\Debug\TestUdpClient.pdb

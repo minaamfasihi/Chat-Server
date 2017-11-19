@@ -30,6 +30,7 @@ namespace TestClientSimulator
         private static AutoResetEvent cleanSendQueue = new AutoResetEvent(false);
         private static AutoResetEvent cleanReceiveQueue = new AutoResetEvent(false);
         private static AutoResetEvent throttleSender = new AutoResetEvent(false);
+        private static AutoResetEvent processReceiveBufferEvent = new AutoResetEvent(false);
 
         private static Hashtable ClientSockets = new Hashtable();
 
@@ -51,6 +52,7 @@ namespace TestClientSimulator
         private static Hashtable sentACKEDSequenceNumbers = new Hashtable();
         private static Hashtable receivedACKEDSequenceNumbers = new Hashtable();
         private static Hashtable friendOf = new Hashtable();
+        private static Queue<byte[]> tempReceiveBuffer = new Queue<byte[]>();
 
         private static readonly Random getrandom = new Random();
 
@@ -67,6 +69,7 @@ namespace TestClientSimulator
         private static string serverIPAddress;
         private static string clientIPAddress;
         private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\Client-Simulator-logs-";
+        private static ClientsList PCList = new ClientsList();
 
         public static int GetRandomNumber(int min, int max)
         {
@@ -212,7 +215,7 @@ namespace TestClientSimulator
         public static void ConnectToServer()
         {
             string logMsg = DateTime.Now + "\t In ConnectToServer()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
 
             try
             {
@@ -238,13 +241,11 @@ namespace TestClientSimulator
 
                 ClientObjects.TryAdd(name, client);
                 incrementPortNumber.Set();
-                // Get packet as byte array
                 byte[] data = sendData.GetDataStream();
 
-                // Send data to server
-                client.SendMessage(sendData, epServer);
+                s.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), s);
+                client.InsertInSendBuffer(sendData.SequenceNumber, data);
 
-                // Begin listening for messages
                 numOfPktsReceived++;
                 //sendDone.WaitOne();
 
@@ -298,11 +299,11 @@ namespace TestClientSimulator
 
             try
             {
-                string sender = client.socket.LocalEndPoint.ToString();
+                string senderName = client.socket.LocalEndPoint.ToString();
                 string friend = "";
-                if (friendOf.ContainsKey(sender))
+                if (friendOf.ContainsKey(senderName))
                 {
-                    friend = friendOf[sender].ToString();
+                    friend = friendOf[senderName].ToString();
                 }
                 else
                 {
@@ -312,9 +313,9 @@ namespace TestClientSimulator
                 if (friend != "")
                 {
                     Packet sendData = new Packet(friend);
-                    sendData.SenderName = sender;
+                    sendData.SenderName = senderName;
                     sendData.ChatMessage = "Hello";
-                    sendData.SequenceNumber = 1; // nextSequenceNumber(clientName);
+                    sendData.SequenceNumber = nextSequenceNumber(senderName);
                     sendData.ChatDataIdentifier = DataIdentifier.Message;
 
                     if (sendData.ChatMessage.ToLower() == "quit")
@@ -420,25 +421,29 @@ namespace TestClientSimulator
                 {
                     foreach (KeyValuePair<string, Client> keyVal in ClientObjects)
                     {
+                        keyVal.Value.SwapSendBuffers();
+
                         if (keyVal.Value.ConsumerSendBuffer.Count != 0)
                         {
-                            foreach (KeyValuePair<int, byte[]> kvp in keyVal.Value.ConsumerSendBuffer)
+                            SortedDictionary<int, byte[]> sd = new SortedDictionary<int, byte[]>(keyVal.Value.ConsumerSendBuffer);
+                            foreach (KeyValuePair<int, byte[]> kvp in sd)
                             {
                                 Packet pkt = new Packet(kvp.Value);
                                 if (ClientSockets.Contains(pkt.SenderName))
                                 {
+                                    //Console.WriteLine("\n\n\n\n########SEND MESSAGE########");
+                                    //Console.WriteLine("Sender: {0}", pkt.SenderName);
+                                    //Console.WriteLine("Recipient: {0}", pkt.RecipientName);
+                                    //Console.WriteLine("Message: {0}", pkt.ChatMessage);
+                                    //Console.WriteLine("DataIdentifier: {0}", pkt.ChatDataIdentifier);
+                                    //Console.WriteLine("Sequence Number: {0}", pkt.SequenceNumber);
+                                    //Console.WriteLine("########END SEND MESSAGE########");
                                     Socket clientSocket = (Socket)ClientSockets[pkt.SenderName];
                                     clientSocket.BeginSendTo(kvp.Value, 0, kvp.Value.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataSocket), clientSocket);
+                                    //Thread.Sleep(10000);
                                 }
                             }
-                            if (keyVal.Value.ConsumerSendBuffer.Count == 0)
-                            {
-                                keyVal.Value.SwapSendBuffers();
-                            }
-                        }
-                        else
-                        {
-                            keyVal.Value.SwapSendBuffers();
+                            //Thread.Sleep(10000);
                         }
                     }
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
@@ -459,115 +464,124 @@ namespace TestClientSimulator
 
             try
             {
-                // Receive all data
                 Client client = (Client)ar.AsyncState;
                 client.socket.EndReceive(ar);
-
-                // Initialise a packet object to store the received data
-                Packet receivedData = new Packet(client.DataStream);
-
-                if (receivedData.ChatMessage == "ACK")
-                {
-                    if (sentACKEDSequenceNumbers.Contains(receivedData.RecipientName))
-                    {
-                        sentACKEDSequenceNumbers[receivedData.RecipientName] = receivedData.SequenceNumber;
-                    }
-                    else
-                    {
-                        sentACKEDSequenceNumbers.Add(receivedData.RecipientName, receivedData.SequenceNumber);
-                    }
-                    cleanSendQueue.Set();
-                }
-
-                else
-                {
-                    if (liesInRangeForReceive(receivedData))
-                    {
-                        if (receiveMessageBuffer.Contains(receivedData.SenderName))
-                        {
-                            SortedDictionary<int, Packet> temp = (SortedDictionary<int, Packet>)receiveMessageBuffer[receivedData.SenderName];
-                            lock (syncReceiveBuffer)
-                            {
-                                temp.Add(receivedData.SequenceNumber, receivedData);
-                            }
-                        }
-                        else
-                        {
-                            SortedDictionary<int, Packet> temp = new SortedDictionary<int, Packet>();
-                            temp.Add(receivedData.SequenceNumber, receivedData);
-
-                            lock (syncReceiveBuffer)
-                            {
-                                receiveMessageBuffer.Add(receivedData.SenderName, temp);
-                            }
-                        }
-                        SendACKToServer(receivedData.SenderName, receivedData.RecipientName);
-                    }
-                }
-
-                // Reset data stream
-                client.ResetDataStream();
-                receiveDone.Set();
-                // Continue listening for broadcasts
-                client.socket.BeginReceiveFrom(client.DataStream, 0, client.DataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), client);
+                tempReceiveBuffer.Enqueue(client.DataStream);
+                processReceiveBufferEvent.Set();
             }
-
             catch (ObjectDisposedException o)
             {
                 logMsg = DateTime.Now + "\t " + o.ToString();
                 logger.Log(logMsg);
             }
-
             catch (Exception e)
             {
                 logMsg = DateTime.Now + "\t " + e.ToString();
                 logger.Log(logMsg);
             }
-
             logMsg = DateTime.Now + "\t Exiting ReceiveData()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
+        }
+
+        private static void ProcessReceiveBuffer()
+        {
+            try
+            {
+                processReceiveBufferEvent.WaitOne();
+
+                Packet receivedData;
+                Client client = null;
+                if (tempReceiveBuffer.Count != 0)
+                {
+                    receivedData = new Packet(tempReceiveBuffer.Dequeue());
+                    //Console.WriteLine("\n\n\n\n########RECEIVE MESSAGE########");
+                    //Console.WriteLine("Sender: {0}", receivedData.SenderName);
+                    //Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
+                    //Console.WriteLine("Message: {0}", receivedData.ChatMessage);
+                    //Console.WriteLine("DataIdentifier: {0}", receivedData.ChatDataIdentifier);
+                    //Console.WriteLine("Sequence Number: {0}", receivedData.SequenceNumber);
+                    //Console.WriteLine("########END RECEIVE MESSAGE########");
+                    if (ClientObjects.ContainsKey(receivedData.SenderName))
+                    {
+                        client = ClientObjects[receivedData.SenderName];
+                    }
+                    else if (ClientObjects.ContainsKey(receivedData.RecipientName))
+                    {
+                        client = ClientObjects[receivedData.RecipientName];
+                    }
+
+                    if (client != null)
+                    {
+                        if (receivedData.ChatMessage == "ACK")
+                        {
+                            if (client.LastIncomingACKForSend < receivedData.SequenceNumber)
+                            {
+                                client.LastIncomingACKForSend = receivedData.SequenceNumber;
+                            }
+                            CleanUpSendQueue(receivedData);
+                        }
+
+                        else
+                        {
+                            client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
+                            SendACKToServer(receivedData.SenderName, receivedData.RecipientName);
+                        }
+
+                        if (client != null)
+                        {
+                            client.ResetDataStream();
+                        }
+
+                        receiveDone.Set();
+                        client.socket.BeginReceiveFrom(client.DataStream, 0, client.DataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), client);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+
+            }
         }
 
         private static void SendACKToServer(string senderName, string recipientName)
         {
             string logMsg = DateTime.Now + ":\t In SendACKToServer()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
             Packet sendData = new Packet();
+            Client client = null;
 
-            SortedDictionary<int, Packet> sortedDict = new SortedDictionary<int, Packet>((SortedDictionary <int, Packet>)receiveMessageBuffer[senderName]);
-
-            if (sortedDict.Count != 0)
+            if (ClientObjects.ContainsKey(senderName))
             {
-                int lastValidSeqNum = sortedDict.Keys.First();
-                sendData.ChatMessage = "ACK";
-                sendData.RecipientName = senderName;
-                sendData.SenderName = recipientName;
-                sendData.ChatDataIdentifier = DataIdentifier.Message;
-
-                for (int i = sortedDict.Keys.First(); i <= sortedDict.Keys.Last(); i++)
+                client = ClientObjects[senderName];
+                SortedDictionary<int, byte[]> sortedDict = client.ReceiveBuffer;
+                if (sortedDict.Count != 0)
                 {
-                    if (sortedDict.ContainsKey(i) && i == lastValidSeqNum)
+                    int lastValidSeqNum = sortedDict.Keys.First();
+                    sendData.ChatMessage = "ACK";
+                    sendData.RecipientName = recipientName;
+                    sendData.SenderName = senderName;
+                    sendData.ChatDataIdentifier = DataIdentifier.Message;
+
+                    for (int i = sortedDict.Keys.First(); i <= sortedDict.Keys.Last(); i++)
                     {
-                        lastValidSeqNum++;
+                        if (sortedDict.ContainsKey(i) && i == lastValidSeqNum)
+                        {
+                            lastValidSeqNum++;
+                        }
+                        else break;
                     }
-                    else break;
-                }
 
-                sendData.SequenceNumber = lastValidSeqNum;
-
-                if (receivedACKEDSequenceNumbers.Contains(senderName))
-                {
-                    receivedACKEDSequenceNumbers[senderName] = lastValidSeqNum;
+                    sendData.SequenceNumber = lastValidSeqNum;
+                    client.LastOutgoingACKForSend = lastValidSeqNum;
+                    cleanReceiveQueue.Set();
+                    byte[] data = sendData.GetDataStream();
+                    client = (Client)ClientSockets[senderName];
+                    client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataObject), client);
                 }
-                
-                cleanReceiveQueue.Set();
-                byte[] data = sendData.GetDataStream();
-                Client client = (Client)ClientSockets[senderName];
-                client.socket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(SendDataObject), client);
             }
 
             logMsg = DateTime.Now + ":\t Exiting SendACKToServer()";
-            logger.Log(logMsg);;
+            logger.Log(logMsg);
         }
 
         private static void Initialize()
@@ -579,9 +593,6 @@ namespace TestClientSimulator
             {
                 string[] friendEp = dict.Key.ToString().Split(delimiters);
                 int friendNum = int.Parse(friendEp[1]) + 1;
-
-                receivedACKEDSequenceNumbers[dict.Key] = 0;
-                sentACKEDSequenceNumbers[dict.Key] = 0;
 
                 if (friendNum > endPortNumber)
                 {
@@ -605,23 +616,14 @@ namespace TestClientSimulator
             return false;
         }
 
-        private static void CleanUpSendQueue()
+        private static void CleanUpSendQueue(Packet pkt)
         {
-            while (true)
+            Client client = ClientObjects[pkt.RecipientName];
+            if (pkt.SequenceNumber > client.LastIncomingACKForSend)
             {
-                cleanSendQueue.WaitOne();
-
-                lock (syncSendBuffer)
-                {
-                    foreach (KeyValuePair<string, Client> dict in ClientObjects)
-                    {
-                        if (sentACKEDSequenceNumbers.Contains(dict.Key))
-                        {
-                            //dict.Value.CleanSendQueue();
-                        }
-                    }
-                }
+                client.LastIncomingACKForSend = pkt.SequenceNumber;
             }
+            client.RemoveFromSendBuffer(pkt.SequenceNumber);
         }
 
         private static void CleanUpReceiveQueue()
@@ -733,25 +735,21 @@ namespace TestClientSimulator
             ClientSimulator simulator = new ClientSimulator();
             Thread t1 = new Thread(simulator.ProcessSendQueue);
             t1.Start();
-
             Thread t2 = new Thread(() => logger.WriteToFile(fileName));
             t2.Start();
-
-            Thread t3 = new Thread(CleanUpSendQueue);
-            t3.Start();
-
+            //Thread t3 = new Thread(CleanUpSendQueue);
+            //t3.Start();
             Thread t4 = new Thread(CleanUpReceiveQueue);
             t4.Start();
-
             Thread t5 = new Thread(simulator.MessageProductionRate);
             //t5.Start();
-
+            Thread t6 = new Thread(ProcessReceiveBuffer);
+            t6.Start();
             Initialize();
             SendMessage();
-
             t1.Join();
             t2.Join();
-            t3.Join();
+            //t3.Join();
             t4.Join();
             t5.Join();
         }
