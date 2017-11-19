@@ -132,7 +132,7 @@ namespace TestUdpClient
                 client = new Client("minaam", "fasihi", (EndPoint)clientEP);
 
                 Packet sendData = new Packet(client.FriendName);
-                sendData.SenderName = client.Name;
+                sendData.SenderName = client.Name.ToLower();
                 sendData.ChatMessage = "request";
                 sendData.RecipientName = client.FriendName;
                 byte[] byteData = sendData.GetDataStream();
@@ -213,8 +213,8 @@ namespace TestUdpClient
                 // Initialise a packet object to store the data to be sent
                 Console.WriteLine("Please enter the name of user who you want to chat with");
                 client.FriendName = Console.ReadLine();
-                Packet sendData = new Packet(client.FriendName);
-                sendData.SenderName = client.Name;
+                Packet sendData = new Packet(client.FriendName.ToLower());
+                sendData.SenderName = client.Name.ToLower();
                 sendData.ChatMessage = null;
                 sendData.ChatDataIdentifier = DataIdentifier.LogIn;
                 // Initialise socket
@@ -390,7 +390,7 @@ namespace TestUdpClient
                 Packet receivedData = new Packet(client.DataStream);
                 if (receivedData.ChatMessage == "ACK")
                 {
-                    Console.WriteLine("ACK Packet: " + receivedData.SequenceNumber + " " + receivedData.ChatMessage);
+                    //Console.WriteLine("ACK Packet: " + receivedData.SequenceNumber + " " + receivedData.ChatMessage);
 
                     if (receivedData.ChatDataIdentifier == DataIdentifier.Message && 
                        client.LastIncomingACKForSend < receivedData.SequenceNumber)
@@ -410,17 +410,21 @@ namespace TestUdpClient
                 {
                     if (receivedData.SenderName != "LoadBalancer")
                     {
-                        if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber))
+                        //Console.WriteLine("Message: {0}", receivedData.ChatMessage);
+                        //Console.WriteLine("Sender: {0}", receivedData.SenderName);
+                        //Console.WriteLine("Recipient: {0}", receivedData.RecipientName);
+                        if (!client.ReceiveBufferHasKey(receivedData.SequenceNumber) && client.LastReceivedPacket < receivedData.SequenceNumber)
                         {
+                            
                             client.InsertInReceiveBuffer(receivedData.GetDataStream(), receivedData.SequenceNumber);
                             SendACKToServer(receivedData);
-                            Console.WriteLine("Sizes: \n");
-                            Console.WriteLine("Consumer Send Buffer: {0}", client.ConsumerSendBuffer.Count);
-                            Console.WriteLine("Consumer Broadcast Buffer: {0}", client.ConsumerBroadcastBuffer.Count);
-                            Console.WriteLine("Awaiting ACKS for Send Buffer: {0}", client.AwaitingSendACKsBuffer.Count);
-                            Console.WriteLine("Producer Send Buffer: {0}", client.ProducerSendBuffer.Count);
-                            Console.WriteLine("Producer Broadcast Buffer: {0}", client.ProducerBroadcastBuffer.Count);
-                            Console.WriteLine("Awaiting ACKS for Broadcast Buffer: {0}", client.AwaitingBroadcastACKsBuffer.Count);
+                            //Console.WriteLine("Sizes: \n");
+                            //Console.WriteLine("Consumer Send Buffer: {0}", client.ConsumerSendBuffer.Count);
+                            //Console.WriteLine("Consumer Broadcast Buffer: {0}", client.ConsumerBroadcastBuffer.Count);
+                            //Console.WriteLine("Awaiting ACKS for Send Buffer: {0}", client.AwaitingSendACKsBuffer.Count);
+                            //Console.WriteLine("Producer Send Buffer: {0}", client.ProducerSendBuffer.Count);
+                            //Console.WriteLine("Producer Broadcast Buffer: {0}", client.ProducerBroadcastBuffer.Count);
+                            //Console.WriteLine("Awaiting ACKS for Broadcast Buffer: {0}", client.AwaitingBroadcastACKsBuffer.Count);
                             processReceiveQueue.Set();
                         }
                     }
@@ -532,7 +536,7 @@ namespace TestUdpClient
                                 Packet pkt = new Packet(client.ReceiveBuffer[i]);
                                 Console.WriteLine(pkt.ChatMessage);
                                 client.ReceiveBuffer.Remove(i);
-                                latestReceivePacketSeqNum = i;
+                                client.LastReceivedPacket = i;
                             }
                             else break;
                         }
@@ -648,7 +652,7 @@ namespace TestUdpClient
                 Thread t3 = new Thread(chatClient.ProcessReceiveQueue);
                 t3.Start();
                 Thread t4 = new Thread(chatClient.ResendSendACKsBuffer);
-                //t4.Start();
+                t4.Start();
                 Thread t5 = new Thread(chatClient.CleanSendQueue);
                 t5.Start();
                 Thread t6 = new Thread(chatClient.MessageProductionRate);
@@ -664,7 +668,7 @@ namespace TestUdpClient
 
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
     }

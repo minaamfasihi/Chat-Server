@@ -6,3 +6,10 @@ C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\ClientAPI\ClientAPI\obj\De
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\ClientAPI\ClientAPI\obj\Debug\ClientAPI.csproj.CoreCompileInputs.cache
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\ClientAPI\ClientAPI\obj\Debug\ClientAPI.dll
 C:\Users\minaam.fasihi\Documents\Projects\Chat-Server\ClientAPI\ClientAPI\obj\Debug\ClientAPI.pdb
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\ClientAPI\ClientAPI\bin\Debug\ClientAPI.dll
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\ClientAPI\ClientAPI\bin\Debug\ClientAPI.pdb
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\ClientAPI\ClientAPI\bin\Debug\PacketAPI.dll
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\ClientAPI\ClientAPI\bin\Debug\PacketAPI.pdb
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\ClientAPI\ClientAPI\obj\Debug\ClientAPI.csprojResolveAssemblyReference.cache
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\ClientAPI\ClientAPI\obj\Debug\ClientAPI.dll
+C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\ClientAPI\ClientAPI\obj\Debug\ClientAPI.pdb

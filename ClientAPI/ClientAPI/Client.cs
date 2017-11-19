@@ -43,6 +43,7 @@ namespace ClientAPI
         int _lastOutgoingACKForSend;
         int _lastOutgoingACKForBroadcast;
         int _portNum;
+        int _lastReceivedPacket = 0;
 
         public Client (string name, string friendName, EndPoint epSender)
         {
@@ -136,6 +137,12 @@ namespace ClientAPI
         {
             get { return _lastOutgoingACKForBroadcast; }
             set { _lastOutgoingACKForBroadcast = value; }
+        }
+
+        public int LastReceivedPacket
+        {
+            get { return _lastReceivedPacket; }
+            set { _lastReceivedPacket = value; }
         }
 
         public int PortNumber

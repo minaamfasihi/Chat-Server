@@ -327,9 +327,6 @@ namespace TestUdpServer
                                     //Console.WriteLine("Message: {0}", receivedData.ChatMessage);
                                     //Console.WriteLine("DataIdentifier: {0}", receivedData.ChatDataIdentifier);
                                     //Console.WriteLine("########END RECEIVED MESSAGE########");
-                                    //Console.WriteLine("Message: {0}", sendData.ChatMessage);
-                                    //Console.WriteLine("Recipient: {0}", sendData.RecipientName);
-                                    //Console.WriteLine("Sender: {0}", sendData.SenderName);
                                     if (clientBuffers.ContainsKey(receivedData.SenderName))
                                     {
                                         currentClient = clientBuffers[receivedData.SenderName];
@@ -340,7 +337,7 @@ namespace TestUdpServer
                                            )
                                         {
                                             currentClient.InsertInSendBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
-                                            //senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
+                                            senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
 
                                             //Console.WriteLine("****************");
                                             //Console.WriteLine("Sizes: \n");
@@ -363,7 +360,7 @@ namespace TestUdpServer
                                             !currentClient.AwaitingBroadcastACKsBuffer.ContainsKey(receivedData.SequenceNumber))
                                         {
                                             currentClient.InsertInBroadcastBuffer(receivedData.SequenceNumber, receivedData.GetDataStream());
-                                            //senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
+                                            senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
                                         }
                                     }
                                 }
@@ -381,7 +378,7 @@ namespace TestUdpServer
                                     senderClientsObject.InsertInSenderClientsProducerList(receivedData.SenderName);
                                     senderClientsObject.InsertInSenderClientsProducerList(receivedData.RecipientName);
                                 }
-
+                                SendACKToClient(receivedData.SenderName);
                                 client.EpSender = epSender;
                                 sendData.ChatMessage = string.Format("-- {0} is online --", receivedData.SenderName);
                                 break;
@@ -726,7 +723,6 @@ namespace TestUdpServer
             //t5.Start();
             Thread t6 = new Thread(server.ProcessReceiveData);
             t6.Start();
-            //Thread t7 = new Thread();
             server.StartListening();
             t1.Join();
             t2.Join();
