@@ -97,7 +97,7 @@ namespace TestClientSimulator
 
                 Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-                connectDone.Reset();
+                //connectDone.Reset();
                 client.BeginConnect(remoteEndPoint, new AsyncCallback(LBConnectCallback), client);
                 connectDone.WaitOne();
 
@@ -315,7 +315,11 @@ namespace TestClientSimulator
                 {
                     Packet sendData = new Packet(friend);
                     sendData.SenderName = senderName;
-                    sendData.ChatMessage = "Hello";
+                    sendData.ChatMessage = "Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello " +
+                        "Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello " +
+                        "Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello " +
+                        "Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello " +
+                        "Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello";
                     sendData.SequenceNumber = nextSequenceNumber(senderName);
                     sendData.ChatDataIdentifier = DataIdentifier.Message;
 
@@ -444,7 +448,7 @@ namespace TestClientSimulator
                                     //Thread.Sleep(10000);
                                 }
                             }
-                            //Thread.Sleep(10000);
+                            Thread.Sleep(100);
                         }
                     }
                     logMsg = DateTime.Now + ":\t Exiting ProcessSendQueue()";
