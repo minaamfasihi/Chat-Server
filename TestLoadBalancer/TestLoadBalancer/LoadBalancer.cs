@@ -94,7 +94,6 @@ public class LoadBalancer
             // Get the socket that handles the client request.
             Socket listener = (Socket)ar.AsyncState;
             Socket handler = listener.EndAccept(ar);
-            Console.WriteLine("The port of the connector server is {0}", handler.LocalEndPoint.ToString());
             handler.BeginReceive(dataStream, 0, dataStream.Length, 0, new AsyncCallback(ReceiveCallback), handler);
             connectedServers.Add(handler);
             logMsg = DateTime.Now + ":\t Exiting AcceptCallback()";
@@ -116,7 +115,6 @@ public class LoadBalancer
             Socket listener = (Socket)ar.AsyncState;
             listener.EndReceive(ar);
             Packet receivedData = new Packet(dataStream);
-            Console.WriteLine("This is what I have received: {0}", receivedData.SenderName);
             int index = 0;
             string serverName;
             if (receivedData.ChatMessage == "request")
@@ -131,13 +129,11 @@ public class LoadBalancer
                     }
                 }
 
-                Console.WriteLine("this is the server you should connect to");
                 Packet serverDetails = new Packet();
                 serverDetails.SenderName = "LoadBalancer";
                 serverDetails.RecipientName = "client";
                 serverDetails.ChatMessage = serverName;
                 serverDetails.ChatDataIdentifier = DataIdentifier.Message;
-                Console.WriteLine(serverDetails.ChatMessage);
                 byte[] byteData = serverDetails.GetDataStream();
                 listener.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(InformClient), listener);
 

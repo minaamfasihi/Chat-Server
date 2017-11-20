@@ -208,6 +208,7 @@ namespace TestUdpServer
             logger.Log(logMsg);
             try
             {
+                allDone.Set();
                 while (true)
                 {
                     allDone.WaitOne();
@@ -485,19 +486,16 @@ namespace TestUdpServer
                                 p.ChatDataIdentifier = DataIdentifier.Broadcast;
                                 BroadcastToAllServers(p);
 
-                                if (clientObj.ConsumerBroadcastBuffer.Count != 0)
-                                {
-                                    int startInd = clientObj.ConsumerBroadcastBuffer.Keys.First();
-                                    int lastInd = clientObj.ConsumerBroadcastBuffer.Keys.Last();
+                                int startInd = clientObj.ConsumerBroadcastBuffer.Keys.First();
+                                int lastInd = clientObj.ConsumerBroadcastBuffer.Keys.Last();
 
-                                    for (int i = startInd; clientObj.ConsumerBroadcastBuffer.Count != 0 && i <= lastInd; i++)
+                                for (int i = startInd; clientObj.ConsumerBroadcastBuffer.Count != 0 && i <= lastInd; i++)
+                                {
+                                    if (clientObj.ConsumerBroadcastBuffer.ContainsKey(i))
                                     {
-                                        if (clientObj.ConsumerBroadcastBuffer.ContainsKey(i))
-                                        {
-                                            Packet pkt = new Packet(clientObj.ConsumerBroadcastBuffer[i]);
-                                            RelayMessage(pkt);
-                                            clientObj.MoveFromConsumerBroadcastToACKBuffer(pkt.SequenceNumber, pkt.GetDataStream());
-                                        }
+                                        Packet pkt = new Packet(clientObj.ConsumerBroadcastBuffer[i]);
+                                        RelayMessage(pkt);
+                                        clientObj.MoveFromConsumerBroadcastToACKBuffer(pkt.SequenceNumber, pkt.GetDataStream());
                                     }
                                 }
                             }
