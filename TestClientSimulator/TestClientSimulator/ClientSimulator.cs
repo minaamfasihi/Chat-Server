@@ -721,37 +721,44 @@ namespace TestClientSimulator
 
         static void Main(string[] args)
         {
-            fileName += args[0].ToString() + ".txt";
-            startPortNumber = int.Parse(args[1]);
-            endPortNumber = int.Parse(args[2]);
-            totalNumOfClients = (endPortNumber - startPortNumber) + 1;
-            availablePortNumsOffset = int.Parse(args[3]);
-            LBIPAddress = args[4].ToString();
-            serverIPAddress = args[5].ToString();
-            clientIPAddress = args[6].ToString();
-            incrementPortNumber.Set();
+            try
+            {
+                fileName += args[0].ToString() + ".txt";
+                startPortNumber = int.Parse(args[1]);
+                endPortNumber = int.Parse(args[2]);
+                totalNumOfClients = (endPortNumber - startPortNumber) + 1;
+                availablePortNumsOffset = int.Parse(args[3]);
+                LBIPAddress = args[4].ToString();
+                serverIPAddress = args[5].ToString();
+                clientIPAddress = args[6].ToString();
+                incrementPortNumber.Set();
 
-            SimulateClients();
-            ClientSimulator simulator = new ClientSimulator();
-            Thread t1 = new Thread(simulator.ProcessSendQueue);
-            t1.Start();
-            Thread t2 = new Thread(() => logger.WriteToFile(fileName));
-            t2.Start();
-            //Thread t3 = new Thread(CleanUpSendQueue);
-            //t3.Start();
-            Thread t4 = new Thread(CleanUpReceiveQueue);
-            t4.Start();
-            Thread t5 = new Thread(simulator.MessageProductionRate);
-            //t5.Start();
-            Thread t6 = new Thread(ProcessReceiveBuffer);
-            t6.Start();
-            Initialize();
-            SendMessage();
-            t1.Join();
-            t2.Join();
-            //t3.Join();
-            t4.Join();
-            t5.Join();
+                SimulateClients();
+                ClientSimulator simulator = new ClientSimulator();
+                Thread t1 = new Thread(simulator.ProcessSendQueue);
+                t1.Start();
+                Thread t2 = new Thread(() => logger.WriteToFile(fileName));
+                t2.Start();
+                //Thread t3 = new Thread(CleanUpSendQueue);
+                //t3.Start();
+                Thread t4 = new Thread(CleanUpReceiveQueue);
+                t4.Start();
+                Thread t5 = new Thread(simulator.MessageProductionRate);
+                //t5.Start();
+                Thread t6 = new Thread(ProcessReceiveBuffer);
+                t6.Start();
+                Initialize();
+                SendMessage();
+                t1.Join();
+                t2.Join();
+                //t3.Join();
+                t4.Join();
+                t5.Join();
+            }
+            catch (Exception e)
+            {
+
+            }
         }
     }
 }

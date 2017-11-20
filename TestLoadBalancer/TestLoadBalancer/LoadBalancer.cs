@@ -261,14 +261,20 @@ public class LoadBalancer
         }
     }
 
-    public static int Main(String[] args)
+    public static void Main(String[] args)
     {
-        fileName += args[0].ToString() + ".txt";
-        LBIPAddress = args[1].ToString();
-        Thread t = new Thread(() => logger.WriteToFile(fileName));
-        t.Start();
-        StartListening();
-        t.Join();
-        return 0;
+        try
+        {
+            fileName += args[0].ToString() + ".txt";
+            LBIPAddress = args[1].ToString();
+            Thread t = new Thread(() => logger.WriteToFile(fileName));
+            t.Start();
+            StartListening();
+            t.Join();
+        }
+        catch (Exception e)
+        {
+
+        }
     }
 }

@@ -202,23 +202,37 @@ namespace ClientAPI
 
         public void InsertInAwaitingSendACKsBuffer(int sequenceNumber, byte[] byteData)
         {
-            lock (lockAwaitingACKsSendBuffer)
+            try
             {
-                if (!_awaitingSendACKsBuffer.ContainsKey(sequenceNumber))
+                lock (lockAwaitingACKsSendBuffer)
                 {
-                    _awaitingSendACKsBuffer.Add(sequenceNumber, byteData);
+                    if (!_awaitingSendACKsBuffer.ContainsKey(sequenceNumber))
+                    {
+                        _awaitingSendACKsBuffer.Add(sequenceNumber, byteData);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void InsertInAwaitingBroadcastACKsBuffer(int sequenceNumber, byte[] byteData)
         {
-            lock (lockAwaitingACKsBroadcastBuffer)
+            try
             {
-                if (!_awaitingBroadcastACKsBuffer.ContainsKey(sequenceNumber))
+                lock (lockAwaitingACKsBroadcastBuffer)
                 {
-                    _awaitingBroadcastACKsBuffer.Add(sequenceNumber, byteData);
+                    if (!_awaitingBroadcastACKsBuffer.ContainsKey(sequenceNumber))
+                    {
+                        _awaitingBroadcastACKsBuffer.Add(sequenceNumber, byteData);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
@@ -251,133 +265,210 @@ namespace ClientAPI
 
         public void SwapProducerBuffer()
         {
-            if (_producerSendBuffer == _sendBuffer1)
+            try
             {
-                _producerSendBuffer = _sendBuffer2;
+                if (_producerSendBuffer == _sendBuffer1)
+                {
+                    _producerSendBuffer = _sendBuffer2;
+                }
+                else
+                {
+                    _producerSendBuffer = _sendBuffer1;
+                }
             }
-            else
+            catch (Exception e)
             {
-                _producerSendBuffer = _sendBuffer1;
+
             }
         }
 
         public void SwapConsumerBuffer()
         {
-            if (_consumerSendBuffer == _sendBuffer1)
+            try
             {
-                _consumerSendBuffer = _sendBuffer2;
+                if (_consumerSendBuffer == _sendBuffer1)
+                {
+                    _consumerSendBuffer = _sendBuffer2;
+                }
+                else
+                {
+                    _consumerSendBuffer = _sendBuffer1;
+                }
             }
-            else
+            catch (Exception e)
             {
-                _consumerSendBuffer = _sendBuffer1;
+
             }
         }
 
         public void SwapSendBuffers()
         {
-            lock (lockConsumerBuffer)
+            try
             {
-                lock (lockProducerBuffer)
+                lock (lockConsumerBuffer)
                 {
-                    SwapProducerBuffer();
-                    SwapConsumerBuffer();
+                    lock (lockProducerBuffer)
+                    {
+                        SwapProducerBuffer();
+                        SwapConsumerBuffer();
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void SwapProducerBroadcastBuffer()
         {
-            if (_producerBroadcastBuffer == _broadcastBuffer1)
+            try
             {
-                _producerBroadcastBuffer = _broadcastBuffer2;
+                if (_producerBroadcastBuffer == _broadcastBuffer1)
+                {
+                    _producerBroadcastBuffer = _broadcastBuffer2;
+                }
+                else
+                {
+                    _producerBroadcastBuffer = _broadcastBuffer1;
+                }
             }
-            else
+            catch (Exception e)
             {
-                _producerBroadcastBuffer = _broadcastBuffer1;
+
             }
         }
 
         public void SwapConsumerBroadcastBuffer()
         {
-            if (_consumerBroadcastBuffer == _broadcastBuffer1)
+            try
             {
-                _consumerBroadcastBuffer = _broadcastBuffer2;
+                if (_consumerBroadcastBuffer == _broadcastBuffer1)
+                {
+                    _consumerBroadcastBuffer = _broadcastBuffer2;
+                }
+                else
+                {
+                    _consumerBroadcastBuffer = _broadcastBuffer2;
+                }
             }
-            else
+            catch (Exception e)
             {
-                _consumerBroadcastBuffer = _broadcastBuffer2;
+
             }
         }
 
         public void SwapBroadcastBuffers()
         {
-            lock (lockConsumerBuffer)
+            try
             {
-                lock (lockProducerBuffer)
+                lock (lockConsumerBuffer)
                 {
-                    SwapProducerBroadcastBuffer();
-                    SwapConsumerBroadcastBuffer();
+                    lock (lockProducerBuffer)
+                    {
+                        SwapProducerBroadcastBuffer();
+                        SwapConsumerBroadcastBuffer();
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void InsertInSendBuffer(int sequenceNumber, byte[] byteData)
         {
-            lock (lockProducerBuffer)
+            try
             {
-                if (!_producerSendBuffer.ContainsKey(sequenceNumber))
+                lock (lockProducerBuffer)
                 {
-                    _producerSendBuffer.Add(sequenceNumber, byteData);
+                    if (!_producerSendBuffer.ContainsKey(sequenceNumber))
+                    {
+                        _producerSendBuffer.Add(sequenceNumber, byteData);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void InsertInBroadcastBuffer(int sequenceNumber, byte[] byteData)
         {
-            lock (lockBroadcastProducerBuffer)
+            try
             {
-                if (!_producerBroadcastBuffer.ContainsKey(sequenceNumber))
+                lock (lockBroadcastProducerBuffer)
                 {
-                    _producerBroadcastBuffer.Add(sequenceNumber, byteData);
+                    if (!_producerBroadcastBuffer.ContainsKey(sequenceNumber))
+                    {
+                        _producerBroadcastBuffer.Add(sequenceNumber, byteData);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void MoveFromConsumerBroadcastToACKBuffer(int sequenceNumber, byte[] byteData)
         {
-            lock (lockBroadcastConsumerBuffer)
+            try
             {
-                if (_consumerBroadcastBuffer.ContainsKey(sequenceNumber))
+                lock (lockBroadcastConsumerBuffer)
                 {
-                    InsertInAwaitingBroadcastACKsBuffer(sequenceNumber, byteData);
-                    _consumerBroadcastBuffer.Remove(sequenceNumber);
+                    if (_consumerBroadcastBuffer.ContainsKey(sequenceNumber))
+                    {
+                        InsertInAwaitingBroadcastACKsBuffer(sequenceNumber, byteData);
+                        _consumerBroadcastBuffer.Remove(sequenceNumber);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void MoveFromConsumerSendToACKBuffer(int sequenceNumber, byte[] byteData)
         {
-            lock (lockConsumerBuffer)
+            try
             {
-                if (_consumerSendBuffer.ContainsKey(sequenceNumber))
+                lock (lockConsumerBuffer)
                 {
-                    InsertInAwaitingSendACKsBuffer(sequenceNumber, byteData);
-                    _consumerSendBuffer.Remove(sequenceNumber);
+                    if (_consumerSendBuffer.ContainsKey(sequenceNumber))
+                    {
+                        InsertInAwaitingSendACKsBuffer(sequenceNumber, byteData);
+                        _consumerSendBuffer.Remove(sequenceNumber);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public bool CheckIfProducerConsumerSendEmpty()
         {
-            lock (lockConsumerBuffer)
+            try
             {
-                lock (lockProducerBuffer)
+                lock (lockConsumerBuffer)
                 {
-                    if (_consumerSendBuffer.Count == 0 && _producerSendBuffer.Count == 0)
+                    lock (lockProducerBuffer)
                     {
-                        return true;
+                        if (_consumerSendBuffer.Count == 0 && _producerSendBuffer.Count == 0)
+                        {
+                            return true;
+                        }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
             return false;
         }
@@ -385,16 +476,23 @@ namespace ClientAPI
         private int LastConsecutiveSequenceNumber(SortedDictionary<int, byte[]> sd)
         {
             int lastSeqNum = 0;
-
-            for (int i = sd.Keys.First(); sd.Any() && i <= sd.Keys.Last(); i++)
+            try
             {
-                if (sd.ContainsKey(i))
+                for (int i = sd.Keys.First(); sd.Any() && i <= sd.Keys.Last(); i++)
                 {
-                    lastSeqNum++;
+                    if (sd.ContainsKey(i))
+                    {
+                        lastSeqNum++;
+                    }
+                    else break;
                 }
-                else break;
+            }
+            catch (Exception e)
+            {
+
             }
             return lastSeqNum;
+
         }
 
         public int GetLastConsecutiveSequenceNumber(SortedDictionary<int, byte[]> sd, bool isBroadcast = false)
@@ -427,59 +525,87 @@ namespace ClientAPI
 
         public void RemoveFromSendBuffer(int sequenceNumber)
         {
-            lock (lockProducerBuffer)
+            try
             {
-                if (ProducerSendBuffer.ContainsKey(sequenceNumber))
+                lock (lockProducerBuffer)
                 {
-                    _producerSendBuffer.Remove(sequenceNumber);
+                    if (ProducerSendBuffer.ContainsKey(sequenceNumber))
+                    {
+                        _producerSendBuffer.Remove(sequenceNumber);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void RemoveFromBroadcastBuffer(int sequenceNumber)
         {
-            lock (lockBroadcastProducerBuffer)
+            try
             {
-                if (ProducerBroadcastBuffer.ContainsKey(sequenceNumber))
+                lock (lockBroadcastProducerBuffer)
                 {
-                    _producerBroadcastBuffer.Remove(sequenceNumber);
+                    if (ProducerBroadcastBuffer.ContainsKey(sequenceNumber))
+                    {
+                        _producerBroadcastBuffer.Remove(sequenceNumber);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void CleanAwaitingACKsSendBuffer()
         {
-            lock (lockAwaitingACKsSendBuffer)
+            try
             {
-                if (_awaitingSendACKsBuffer.Count != 0)
+                lock (lockAwaitingACKsSendBuffer)
                 {
-                    for (int i = _awaitingSendACKsBuffer.Keys.First(); (_awaitingSendACKsBuffer.Count != 0) && i < _lastIncomingACKForSend; i++)
+                    if (_awaitingSendACKsBuffer.Count != 0)
                     {
-                        if (_awaitingSendACKsBuffer.ContainsKey(i))
+                        for (int i = _awaitingSendACKsBuffer.Keys.First(); (_awaitingSendACKsBuffer.Count != 0) && i < _lastIncomingACKForSend; i++)
                         {
-                            _awaitingSendACKsBuffer.Remove(i);
+                            if (_awaitingSendACKsBuffer.ContainsKey(i))
+                            {
+                                _awaitingSendACKsBuffer.Remove(i);
+                            }
+                            else break;
                         }
-                        else break;
                     }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
         public void CleanAwaitingACKsBroadcastBuffer()
         {
-            lock (lockAwaitingACKsBroadcastBuffer)
+            try
             {
-                if (_awaitingBroadcastACKsBuffer.Count != 0)
+                lock (lockAwaitingACKsBroadcastBuffer)
                 {
-                    for (int i = _awaitingBroadcastACKsBuffer.Keys.First(); (_awaitingBroadcastACKsBuffer.Count != 0) && i < _lastIncomingACKForBroadcast; i++)
+                    if (_awaitingBroadcastACKsBuffer.Count != 0)
                     {
-                        if (_awaitingBroadcastACKsBuffer.ContainsKey(i))
+                        for (int i = _awaitingBroadcastACKsBuffer.Keys.First(); (_awaitingBroadcastACKsBuffer.Count != 0) && i < _lastIncomingACKForBroadcast; i++)
                         {
-                            _awaitingBroadcastACKsBuffer.Remove(i);
+                            if (_awaitingBroadcastACKsBuffer.ContainsKey(i))
+                            {
+                                _awaitingBroadcastACKsBuffer.Remove(i);
+                            }
+                            else break;
                         }
-                        else break;
                     }
                 }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
