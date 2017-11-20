@@ -51,7 +51,7 @@ namespace TestUdpServer
         private static LogWriter logger = Logger.Instance;
         private object clientBufferLock = new object();
         private static int serverPort;
-        private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\Server-logs-";
+        private static string fileName = @"C:\Users\Server-logs-";
         private static string serverIPAddress;
         private static string LBIPAddress;
         private static int rawNumOfPktsReceived = 0;

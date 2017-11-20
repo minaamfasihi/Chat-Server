@@ -23,7 +23,7 @@ namespace TestUdpClient
 
         private byte[] dataStream = new byte[1024];
 
-        private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\Client-logs-";
+        private static string fileName = @"C:\Users\Client-logs-";
 
         private static int sequenceNumber = 0;
         private static int expectedSequenceNumber;
@@ -254,7 +254,14 @@ namespace TestUdpClient
 
                     sendData.SenderName = client.Name;
                     sendData.ChatMessage = client.Name + ": ";
-                    sendData.ChatMessage += Console.ReadLine();
+                    string msg = Console.ReadLine();
+                    while (msg == "" || msg == "\n" || msg == null)
+                    {
+                        Console.WriteLine("Please enter a valid sentence");
+                        msg = Console.ReadLine();
+                    }
+                    sendData.ChatMessage += msg;
+
                     sendData.SequenceNumber = ++sequenceNumber;
                     sendData.ChatDataIdentifier = DataIdentifier.Message;
                     incrementLatestSendPacket(sendData.SequenceNumber);
@@ -264,7 +271,7 @@ namespace TestUdpClient
                         Logout(sendData);
                         return;
                     }
-
+                    
                     try
                     {
                         byte[] byteData = sendData.GetDataStream();

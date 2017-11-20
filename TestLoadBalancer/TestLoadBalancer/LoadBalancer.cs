@@ -19,7 +19,7 @@ public class LoadBalancer
     private static ArrayList connectedServers = new ArrayList();
     private static LogWriter logger = Logger.Instance;
     //private static string fileName = @"C:\Users\minaam.fasihi\Documents\Projects\LB-logs-";
-    private static string fileName = @"C:\Users\Minaam.Fasihi\Documents\Visual Studio 2017\Projects\Chat-Server\TestLoadBalancer\LB-logs-";
+    private static string fileName = @"C:\Users\LB-logs-";
     private static string LBIPAddress;
     private static readonly object syncLock = new object();
     private static readonly Random getrandom = new Random();
